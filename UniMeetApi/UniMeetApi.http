@@ -1,0 +1,6 @@
+@UniMeetApi_HostAddress = http://localhost:5062
+
+GET {{UniMeetApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
