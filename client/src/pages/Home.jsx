@@ -1,102 +1,46 @@
+// src/pages/Home.jsx
 import {
   AppBar,
   Toolbar,
   Typography,
-  Button,
   Container,
   Box,
+  Stack,
   Card,
   CardContent,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Button,
   Chip,
-  Divider,
   CircularProgress,
   Alert,
-  TextField
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/index";
 
 export default function Home() {
   const navigate = useNavigate();
 
-  // Kullanıcı
+  // Kullanıcı bilgisi (ileride gerekirse role bazlı içerik göstermek için)
   const user = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
   }, []);
-  const role = user?.role ?? null;
-  const managedClubId = user?.managedClubId ?? null;
-  const isManager = role === "Manager";
-  const isAdmin = role === "Admin";
 
-  const [events, setEvents] = useState([]);
+  // Eyaletler
+  const [myClubs, setMyClubs] = useState([]);       // Katıldığım kulüpler
+  const [clubsLoading, setClubsLoading] = useState(true);
+  const [clubsErr, setClubsErr] = useState("");
 
-  // Detay dialog state
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detail, setDetail] = useState(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailErr, setDetailErr] = useState("");
-  const [notFound, setNotFound] = useState(false);
+  const [events, setEvents] = useState([]);         // Feed (takip ettiğim kulüplerin etkinlikleri)
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsErr, setEventsErr] = useState("");
 
-  // Edit state
-  const [editMode, setEditMode] = useState(false);
-  const [editSaving, setEditSaving] = useState(false);
-  const [editErr, setEditErr] = useState("");
-
-  // Delete state
-  const [deleteAsk, setDeleteAsk] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteErr, setDeleteErr] = useState("");
-
-  // Edit form alanları
-  const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("");
-  const [startDate, setStartDate] = useState(""); // YYYY-MM-DD
-  const [startTime, setStartTime] = useState(""); // HH:mm
-  const [endDate, setEndDate] = useState("");     // YYYY-MM-DD
-  const [endTime, setEndTime] = useState("");     // HH:mm
-  const [quota, setQuota] = useState("");
-  const [description, setDescription] = useState("");
-
-  // Min tarih/saat
+  // ---- Yardımcılar ----
   const pad = (n) => String(n).padStart(2, "0");
-  const todayStr = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }, []);
-  const nowTimeStr = useMemo(() => {
-    const d = new Date();
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }, []);
 
-  const startTimeMin = startDate === todayStr ? nowTimeStr : undefined;
-  const endDateMin = startDate || todayStr;
-  const endTimeMin =
-    endDate && startDate && endDate === startDate
-      ? (startTime || nowTimeStr)
-      : undefined;
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get("/api/Events");
-        setEvents(data ?? []);
-      } catch (err) {
-        console.error("Etkinlikler alınamadı:", err);
-      }
-    })();
-  }, []);
-
-  // === YENİ: UTC güvenli parse + format ===
   const parseAsUtc = (s) => {
     if (!s) return null;
     const hasTz = /[zZ]|[+\-]\d{2}:\d{2}$/.test(s);
-    const iso = hasTz ? s : s + "Z"; // Z ekleyerek UTC kabul et
+    const iso = hasTz ? s : s + "Z";
     const d = new Date(iso);
     return isNaN(d.getTime()) ? null : d;
   };
@@ -107,158 +51,85 @@ export default function Home() {
       ? d.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })
       : "-";
   };
-  // === /YENİ ===
 
-  const refreshList = async () => {
+  // Küçük bir yardımcı: aynı isteği önce /api/*, 404 olursa /*/ ile dene
+  const getWithFallback = async (primary, fallback) => {
     try {
-      const { data } = await api.get("/api/Events");
-      setEvents(data ?? []);
-    } catch {}
-  };
-
-  const openDetail = async (id) => {
-    setDetailLoading(true);
-    setDetailErr("");
-    setNotFound(false);
-    setEditMode(false);
-    setDeleteAsk(false);
-    setDetailOpen(true);
-
-    try {
-      const { data } = await api.get(`/api/Events/${id}`);
-      setDetail(data);
-
-      // formu doldur (UTC güvenli)
-      if (data?.startAt) {
-        const s = parseAsUtc(data.startAt);         // <<< GÜNCEL
-        setStartDate(`${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}`);
-        setStartTime(`${pad(s.getHours())}:${pad(s.getMinutes())}`);
-      } else {
-        setStartDate(""); setStartTime("");
-      }
-      if (data?.endAt) {
-        const e = parseAsUtc(data.endAt);           // <<< GÜNCEL
-        setEndDate(`${e.getFullYear()}-${pad(e.getMonth() + 1)}-${pad(e.getDate())}`);
-        setEndTime(`${pad(e.getHours())}:${pad(e.getMinutes())}`);
-      } else {
-        setEndDate(""); setEndTime("");
-      }
-      setTitle(data?.title ?? "");
-      setLocation(data?.location ?? "");
-      setQuota(String(data?.quota ?? ""));
-      setDescription(data?.description ?? "");
+      return await api.get(primary);
     } catch (e) {
       const status = e?.response?.status;
-      if (status === 404) setNotFound(true);
-      else setDetailErr(e?.response?.data || "Etkinlik detayı yüklenemedi.");
-      setDetail(null);
-    } finally {
-      setDetailLoading(false);
+      if (status === 404 && fallback) {
+        return await api.get(fallback);
+      }
+      throw e;
     }
   };
 
-  const resetDetailState = () => {
-    setDetail(null);
-    setDetailErr("");
-    setNotFound(false);
-    setEditMode(false);
-    setEditErr("");
-    setDeleteAsk(false);
-    setDeleteErr("");
-    setStartDate(""); setStartTime("");
-    setEndDate(""); setEndTime("");
-    setTitle(""); setLocation(""); setQuota(""); setDescription("");
-  };
+  // Katıldığım kulüpleri çek (chip'ler için)
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      setClubsLoading(true);
+      setClubsErr("");
+      try {
+        // Tercihen: /api/Clubs/joined
+        // Backend farklıysa fallback: /Clubs/joined
+        const { data } = await getWithFallback("/api/Clubs/joined", "/Clubs/joined");
+        if (!ignore) setMyClubs(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!ignore) {
+          setMyClubs([]);
+          setClubsErr("Kulüp üyeliklerin yüklenemedi.");
+        }
+      } finally {
+        if (!ignore) setClubsLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
 
-  const closeDetail = () => {
-    setDetailOpen(false);
-    setTimeout(resetDetailState, 200);
-  };
+  // FEED: Takip edilen kulüplerin etkinlikleri
+  // Not: upcomingOnly=false alıyoruz; client’ta küçük bir toleransla süzüyoruz.
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      setEventsLoading(true);
+      setEventsErr("");
+      try {
+        // includeCancelled=false & upcomingOnly=false
+        const { data } = await api.get("/api/Events/feed?includeCancelled=false&upcomingOnly=false");
+        if (!ignore) setEvents(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!ignore) {
+          setEvents([]);
+          setEventsErr("Etkinlik akışı yüklenemedi.");
+        }
+      } finally {
+        if (!ignore) setEventsLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
 
-  const canEditOrDelete = !!detail && (isAdmin || (isManager && managedClubId === detail.clubId));
+  // Feed'i tarihe göre sırala + küçük zaman toleransı uygula
+  const myFeed = useMemo(() => {
+    // Son 12 saatlik tolerans (UTC kaymaları/past sınırı için)
+    const TOLERANCE_MS = 12 * 60 * 60 * 1000;
+    const now = Date.now();
 
-  // datetime yardımcıları / doğrulama
-  const toIso = (d, t) => {
-    if (!d || !t) return null;
-    const x = new Date(`${d}T${t}`);
-    return isNaN(x.getTime()) ? null : x.toISOString();
-  };
-  const isPast = (d, t) => {
-    if (!d || !t) return false;
-    return new Date(`${d}T${t}`).getTime() < Date.now();
-  };
-  const compareDt = (d1, t1, d2, t2) => {
-    const a = new Date(`${d1}T${t1}`).getTime();
-    const b = new Date(`${d2}T${t2}`).getTime();
-    if (a < b) return -1;
-    if (a > b) return 1;
-    return 0;
-  };
+    // Süz: başlangıç zamanı "şu an - tolerans" sonrası olanlar
+    const filtered = (events || []).filter((e) => {
+      const t = parseAsUtc(e?.startAt)?.getTime();
+      return typeof t === "number" && t >= (now - TOLERANCE_MS);
+    });
 
-  const validateEdit = () => {
-    if (!title.trim()) return "Etkinlik adı zorunludur.";
-    if (!location.trim()) return "Etkinlik yeri zorunludur.";
-    if (!startDate) return "Başlangıç tarihi zorunludur.";
-    if (!startTime) return "Başlangıç saati zorunludur.";
-    if (isPast(startDate, startTime)) return "Geçmiş başlangıç tarih/saat seçilemez.";
-
-    if (!endDate) return "Bitiş tarihi zorunludur.";
-    if (!endTime) return "Bitiş saati zorunludur.";
-    if (isPast(endDate, endTime)) return "Geçmiş bitiş tarih/saat seçilemez.";
-
-    if (compareDt(endDate, endTime, startDate, startTime) < 0)
-      return "Bitiş zamanı başlangıçtan önce olamaz.";
-
-    if (!quota || isNaN(Number(quota)) || Number(quota) <= 0)
-      return "Kontenjan pozitif bir sayı olmalıdır.";
-    return "";
-  };
-
-  const saveEdit = async () => {
-    const v = validateEdit();
-    if (v) { setEditErr(v); return; }
-    setEditErr("");
-    setEditSaving(true);
-    try {
-      await api.put(`/api/Events/${detail.eventId}`, {
-        title: title.trim(),
-        location: location.trim(),
-        startAt: toIso(startDate, startTime),
-        endAt: toIso(endDate, endTime),
-        quota: Number(quota),
-        clubId: detail.clubId,
-        description: description.trim() || null,
-        isCancelled: detail.isCancelled ?? false
-      });
-
-      const [listRes, detailRes] = await Promise.all([
-        api.get("/api/Events"),
-        api.get(`/api/Events/${detail.eventId}`)
-      ]);
-      setEvents(listRes.data ?? []);
-      setDetail(detailRes.data ?? null);
-      setEditMode(false);
-    } catch (e) {
-      setEditErr(e?.response?.data || "Kaydedilemedi.");
-    } finally {
-      setEditSaving(false);
-    }
-  };
-
-  const confirmDelete = () => { setDeleteAsk(true); setDeleteErr(""); };
-  const doDelete = async () => {
-    if (!detail) return;
-    setDeleting(true); setDeleteErr("");
-    try {
-      await api.delete(`/api/Events/${detail.eventId}`);
-      await refreshList();
-      closeDetail();
-    } catch (e) {
-      setDeleteErr(e?.response?.data || "Silme işlemi başarısız oldu.");
-    } finally {
-      setDeleting(false);
-    }
-  };
+    // Sırala
+    return filtered.sort((a, b) => {
+      const da = parseAsUtc(a?.startAt)?.getTime() ?? 0;
+      const db = parseAsUtc(b?.startAt)?.getTime() ?? 0;
+      return da - db;
+    });
+  }, [events]);
 
   return (
     <>
@@ -267,30 +138,72 @@ export default function Home() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             UniMeet — Ana Sayfa
           </Typography>
-
-          {(isAdmin || isManager) && (
-            <Button variant="contained" onClick={() => navigate("/manageevents")}>
-              Etkinlik Oluştur
-            </Button>
-          )}
+          {/* Navigasyon */}
+          <Button onClick={() => navigate("/events")} sx={{ mr: 1 }}>
+            Etkinlikler
+          </Button>
+          <Button variant="outlined" onClick={() => navigate("/clubs")}>
+            Kulüpler
+          </Button>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg">
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" sx={{ mb: 2 }}>
-            Hoş geldin! 🎉
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 4 }}>
-            Etkinlikleri görüntüleyebilir, yetkin varsa düzenleyebilir/silebilirsin.
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
+        {/* Katıldığım Kulüpler */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ mb: 1.5 }}>Takip Ettiğin Kulüpler</Typography>
+
+          {clubsLoading ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <CircularProgress size={20} /> <Typography>Yükleniyor…</Typography>
+            </Box>
+          ) : clubsErr ? (
+            <Alert severity="error">{clubsErr}</Alert>
+          ) : myClubs.length === 0 ? (
+            <Alert
+              severity="info"
+              action={
+                <Button size="small" variant="contained" onClick={() => navigate("/clubs")}>
+                  Kulüpleri Gör
+                </Button>
+              }
+            >
+              Henüz herhangi bir kulübe katılmadın. Kulüplere katıl ve
+              etkinlikleri burada gör.
+            </Alert>
+          ) : (
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              {myClubs.map((c) => (
+                <Chip key={c?.clubId ?? c?.name} label={c?.name ?? "Kulüp"} color="primary" variant="outlined" />
+              ))}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Feed: Katıldığım kulüplerin etkinlikleri */}
+        <Box>
+          <Typography variant="h6" sx={{ mb: 1.5 }}>
+            Senin İçin Etkinlikler
           </Typography>
 
-          {events.length === 0 ? (
-            <Typography color="text.secondary">Henüz etkinlik bulunmuyor.</Typography>
+          {eventsLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : eventsErr ? (
+            <Alert severity="error">{eventsErr}</Alert>
+          ) : myClubs.length === 0 ? (
+            <Alert severity="info">
+              Kulüplere katıldığında, o kulüplerin etkinlikleri burada listelenecek.
+            </Alert>
+          ) : myFeed.length === 0 ? (
+            <Alert severity="info">
+              Takip ettiğin kulüplere ait yaklaşan etkinlik bulunmuyor.
+            </Alert>
           ) : (
             <Stack spacing={2}>
-              {events.map((e) => (
-                <Card key={e.eventId} sx={{ cursor: "pointer" }} onClick={() => openDetail(e.eventId)}>
+              {myFeed.map((e) => (
+                <Card key={e.eventId} sx={{ cursor: "default" }}>
                   <CardContent>
                     <Typography variant="h6">{e.title}</Typography>
                     <Typography color="text.secondary">
@@ -313,141 +226,6 @@ export default function Home() {
           )}
         </Box>
       </Container>
-
-      {/* Detay + Düzenle + Sil Dialog */}
-      <Dialog open={detailOpen} onClose={closeDetail} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {detail?.title ?? "Etkinlik Detayı"}
-          {detail?.isCancelled && (
-            <Chip label="İptal Edildi" color="error" size="small" />
-          )}
-        </DialogTitle>
-        <DialogContent dividers>
-          {detailLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : detailErr ? (
-            <Alert severity="error">{String(detailErr)}</Alert>
-          ) : notFound ? (
-            <Alert severity="warning">Etkinlik bulunamadı.</Alert>
-          ) : detail ? (
-            editMode ? (
-              <>
-                {editErr && <Alert severity="error" sx={{ mb: 2 }}>{editErr}</Alert>}
-                <Stack spacing={2}>
-                  <TextField label="Etkinlik Adı" value={title} onChange={(e) => setTitle(e.target.value)} />
-                  <TextField label="Yer" value={location} onChange={(e) => setLocation(e.target.value)} />
-
-                  {/* Başlangıç */}
-                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-                    <TextField
-                      label="Başlangıç Tarihi"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={{ min: todayStr }}
-                    />
-                    <TextField
-                      label="Başlangıç Saati"
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={startTimeMin ? { min: startTimeMin } : {}}
-                    />
-                  </Box>
-
-                  {/* Bitiş */}
-                  <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-                    <TextField
-                      label="Bitiş Tarihi"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={{ min: endDateMin }}
-                    />
-                    <TextField
-                      label="Bitiş Saati"
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      inputProps={endTimeMin ? { min: endTimeMin } : {}}
-                    />
-                  </Box>
-
-                  <TextField
-                    label="Kontenjan"
-                    type="number"
-                    inputProps={{ min: 1 }}
-                    value={quota}
-                    onChange={(e) => setQuota(e.target.value)}
-                  />
-                  <TextField
-                    label="Açıklama"
-                    multiline
-                    minRows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </Stack>
-              </>
-            ) : (
-              <Stack spacing={1.5}>
-                {detail.clubName && (
-                  <Chip label={detail.clubName} color="primary" variant="outlined" />
-                )}
-                <Divider />
-                <Typography><strong>Yer:</strong> {detail.location}</Typography>
-                <Typography><strong>Başlangıç:</strong> {fmt(detail.startAt)}</Typography>
-                <Typography><strong>Bitiş:</strong> {detail.endAt ? fmt(detail.endAt) : "-"}</Typography>
-                <Typography><strong>Kontenjan:</strong> {detail.quota}</Typography>
-                {detail.description && (
-                  <>
-                    <Divider />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Açıklama</Typography>
-                    <Typography color="text.secondary" sx={{ whiteSpace: "pre-wrap" }}>
-                      {detail.description}
-                    </Typography>
-                  </>
-                )}
-                {deleteErr && <Alert severity="error">{deleteErr}</Alert>}
-              </Stack>
-            )
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          {detail && (isAdmin || (isManager && managedClubId === detail.clubId)) && !detailLoading && !detailErr && !editMode && (
-            <>
-              {deleteAsk ? (
-                <>
-                  <Button onClick={() => setDeleteAsk(false)} disabled={deleting}>Vazgeç</Button>
-                  <Button color="error" variant="contained" onClick={doDelete} disabled={deleting}>
-                    {deleting ? "Siliniyor..." : "Sil"}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button color="error" onClick={() => { setDeleteAsk(true); setDeleteErr(""); }}>Sil</Button>
-                  <Button variant="outlined" onClick={() => setEditMode(true)}>Düzenle</Button>
-                </>
-              )}
-            </>
-          )}
-          {editMode && (
-            <>
-              <Button onClick={() => setEditMode(false)} disabled={editSaving}>Vazgeç</Button>
-              <Button variant="contained" onClick={saveEdit} disabled={editSaving}>
-                {editSaving ? "Kaydediliyor..." : "Kaydet"}
-              </Button>
-            </>
-          )}
-          <Button onClick={closeDetail}>Kapat</Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 }

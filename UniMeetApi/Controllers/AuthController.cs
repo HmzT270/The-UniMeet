@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace UniMeetApi.Controllers
 {
@@ -41,6 +42,7 @@ namespace UniMeetApi.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous] // ✅ Global authorize olsa bile giriş serbest
         public async Task<ActionResult<LoginRes>> Login([FromBody] LoginReq req)
         {
             if (req is null) return BadRequest("Geçersiz istek.");
@@ -83,7 +85,7 @@ namespace UniMeetApi.Controllers
                     return BadRequest("Şifre hatalı.");
             }
 
-            // --- JWT üretimi (projede JwtHelper yok; burada üretiyoruz) ---
+            // --- JWT üretimi ---
             var issuer = _cfg["Jwt:Issuer"] ?? "";
             var audience = _cfg["Jwt:Audience"] ?? "";
             var key = _cfg["Jwt:Key"];
@@ -102,7 +104,7 @@ namespace UniMeetApi.Controllers
                 new Claim(ClaimTypes.Role, user.Role.ToString())
             };
 
-            // (Opsiyonel) Manager’ın kulübünü token’a claim olarak koymak istersen:
+            // (Opsiyonel) Manager’ın kulübü claim'i
             if (user.ManagedClubId.HasValue)
                 claims.Add(new Claim("ManagedClubId", user.ManagedClubId.Value.ToString()));
 

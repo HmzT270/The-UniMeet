@@ -48,10 +48,11 @@ namespace UniMeetApi.Controllers
         );
 
         // === Helpers ===
-        private int? GetCurrentUserId()
+        private bool TryGetUserId(out int userId)
         {
-            var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            return int.TryParse(id, out var uid) ? uid : null;
+            userId = 0;
+            var idStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(idStr, out userId);
         }
 
         private static bool IsAdmin(User u) => u.Role == UserRole.Admin;
@@ -132,10 +133,10 @@ namespace UniMeetApi.Controllers
             if (req.EndAt.HasValue && req.EndAt.Value < req.StartAt)
                 return BadRequest("Bitiş, başlangıçtan önce olamaz.");
 
-            var userId = GetCurrentUserId();
-            if (userId is null) return Unauthorized("Kullanıcı bilgisi alınamadı.");
+            if (!TryGetUserId(out var userId))
+                return Unauthorized("Kullanıcı bilgisi alınamadı.");
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId.Value);
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
             if (user is null || !user.IsActive) return Unauthorized("Kullanıcı bulunamadı veya pasif.");
 
             // ✅ KURAL: Admin serbest; Manager sadece kendi kulübü için
@@ -196,10 +197,10 @@ namespace UniMeetApi.Controllers
             if (req.EndAt.HasValue && req.EndAt.Value < req.StartAt)
                 return BadRequest("Bitiş, başlangıçtan önce olamaz.");
 
-            var userId = GetCurrentUserId();
-            if (userId is null) return Unauthorized("Kullanıcı bilgisi alınamadı.");
+            if (!TryGetUserId(out var userId))
+                return Unauthorized("Kullanıcı bilgisi alınamadı.");
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId.Value);
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
             if (user is null || !user.IsActive) return Unauthorized("Kullanıcı bulunamadı veya pasif.");
 
             // ✅ KURAL: Admin serbest; Manager sadece KENDİ kulübüne ait etkinliği güncelleyebilir
@@ -248,10 +249,10 @@ namespace UniMeetApi.Controllers
             var e = await _db.Events.FirstOrDefaultAsync(x => x.EventId == id);
             if (e is null) return NotFound("Etkinlik bulunamadı.");
 
-            var userId = GetCurrentUserId();
-            if (userId is null) return Unauthorized("Kullanıcı bilgisi alınamadı.");
+            if (!TryGetUserId(out var userId))
+                return Unauthorized("Kullanıcı bilgisi alınamadı.");
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId.Value);
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
             if (user is null || !user.IsActive) return Unauthorized("Kullanıcı bulunamadı veya pasif.");
 
             // ✅ KURAL: Admin serbest; Manager sadece KENDİ kulübüne ait etkinliği iptal edebilir
@@ -261,6 +262,55 @@ namespace UniMeetApi.Controllers
             e.IsCancelled = true;
             await _db.SaveChangesAsync();
             return NoContent();
+        }
+
+        // === ✅ YENİ: Takip edilen kulüplerin etkinlikleri (Home feed) ===
+        [HttpGet("feed")]
+        [Authorize]
+        public async Task<ActionResult<List<EventDto>>> Feed(
+            [FromQuery] bool upcomingOnly = true,
+            [FromQuery] bool includeCancelled = false)
+        {
+            if (!TryGetUserId(out var userId))
+                return Unauthorized("Kullanıcı bilgisi alınamadı.");
+
+            // Kullanıcının takip ettiği kulüpler
+            var myClubIds = await _db.ClubMembers
+                .Where(m => m.UserId == userId)
+                .Select(m => m.ClubId)
+                .ToListAsync();
+
+            // Hiç kulüp takip etmiyorsa boş liste dön
+            if (myClubIds.Count == 0) return Ok(new List<EventDto>());
+
+            var now = DateTime.UtcNow;
+
+            var query = _db.Events.AsNoTracking()
+                .Where(e => myClubIds.Contains(e.ClubId));
+
+            if (!includeCancelled)
+                query = query.Where(e => !e.IsCancelled);
+
+            if (upcomingOnly)
+                query = query.Where(e => e.StartAt >= now);
+
+            var list = await query
+                .OrderBy(e => e.StartAt)
+                .Select(e => new EventDto(
+                    e.EventId,
+                    e.Title,
+                    e.Location,
+                    e.StartAt,
+                    e.EndAt,
+                    e.Quota,
+                    e.ClubId,
+                    _db.Clubs.Where(c => c.ClubId == e.ClubId).Select(c => (string?)c.Name).FirstOrDefault(),
+                    e.Description,
+                    e.IsCancelled
+                ))
+                .ToListAsync();
+
+            return Ok(list);
         }
     }
 }

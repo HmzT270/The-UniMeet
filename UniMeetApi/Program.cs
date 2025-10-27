@@ -4,6 +4,7 @@ using UniMeetApi; // AppDbContext bu namespace'te
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,9 +19,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("client", policy =>
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+        policy
+            .WithOrigins("http://localhost:5173", "https://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+        );
 });
 
 // JWT Authentication
@@ -39,11 +42,10 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.RequireHttpsMetadata = false; // Dev ortamı için
+        options.RequireHttpsMetadata = false;
         options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Issuer/Audience boş ise doğrulama devre dışı bırakılır (dev kolaylığı)
             ValidateIssuer = !string.IsNullOrWhiteSpace(jwtIssuer),
             ValidIssuer = jwtIssuer,
 
@@ -54,16 +56,17 @@ builder.Services
             IssuerSigningKey = signingKey,
 
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(1) // token süresine küçük tolerans
+            ClockSkew = TimeSpan.FromMinutes(1),
+
+            // ✅ EKLENDİ — Role claim'ini doğru şekilde oku
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
 // Authorization (rol bazlı policy örnekleri)
 builder.Services.AddAuthorization(options =>
 {
-    // Etkinlik oluşturma gibi işlemler için kulüp yöneticileri
     options.AddPolicy("ManagersOnly", p => p.RequireRole(nameof(UserRole.Manager), nameof(UserRole.Admin)));
-    // Sadece Admin
     options.AddPolicy("AdminsOnly", p => p.RequireRole(nameof(UserRole.Admin)));
 });
 
@@ -107,12 +110,14 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = "swagger";
     });
 }
-
-app.UseHttpsRedirection();
+else
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("client");
 
-// SIRALAMA ÖNEMLİ: Auth middleware'leri MapControllers'tan ÖNCE olmalı
+// ✅ Sıra doğru: önce auth/authorize, sonra controller
 app.UseAuthentication();
 app.UseAuthorization();
 
