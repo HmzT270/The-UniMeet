@@ -24,6 +24,9 @@ export default function Home() {
   const user = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
   }, []);
+  const role = user?.role ?? null;
+  const isAdmin = role === "Admin";
+  const isManager = role === "Manager";
 
   // Eyaletler
   const [myClubs, setMyClubs] = useState([]);       // Katıldığım kulüpler
@@ -145,6 +148,11 @@ export default function Home() {
           <Button variant="outlined" onClick={() => navigate("/clubs")}>
             Kulüpler
           </Button>
+          {(isAdmin || isManager) && (
+            <Button variant="contained" onClick={() => navigate("/manageevents")} sx={{ ml: 1 }}>
+              Etkinlik Oluştur
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 

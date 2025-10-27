@@ -320,17 +320,24 @@ export default function Events() {
             Etkinlikleri görüntüleyebilir, yetkin varsa düzenleyebilir/silebilirsin.
           </Typography>
 
-          {/* === YENİ: Kulüp Çoklu Filtresi === */}
-          <Box sx={{ mb: 3 }}>
+          {/* === YENİ: Kulüp Çoklu Filtresi (Kısaltılmış) === */}
+          <Box sx={{ mb: 3, maxWidth: { xs: "100%", sm: 360 } }}>
             <Autocomplete
               multiple
+              size="small"
+              sx={{ width: { xs: "100%", sm: 360 } }}
               options={clubs}
               value={selectedClubs}
               onChange={(_, val) => setSelectedClubs(val || [])}
               getOptionLabel={(o) => o?.name ?? ""}
               isOptionEqualToValue={(opt, val) => opt?.clubId === val?.clubId}
               renderInput={(params) => (
-                <TextField {...params} label="Kulüp Filtresi" placeholder="Kulüp Seçiniz" />
+                <TextField
+                  {...params}
+                  size="small"
+                  label="Kulüp Filtresi"
+                  placeholder="Seçiniz"
+                />
               )}
             />
           </Box>

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("UniMeetApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+99be81840a1a109ccb55cb40f38de4ff5f6b16e6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+14dd98b35e7553fbc1c48d3a1699abdcd62f3155")]
 [assembly: System.Reflection.AssemblyProductAttribute("UniMeetApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("UniMeetApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
