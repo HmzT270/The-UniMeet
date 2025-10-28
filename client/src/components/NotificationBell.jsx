@@ -8,12 +8,35 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { api } from "../api/index";
 
-const SEEN_KEY = "um_seen_event_ids_v1";
+const SEEN_KEY = "um_seen_event_ids_v1";          // "yeni" tekilleştirme
+const READ_KEY = "um_read_event_ids_v1";          // okundu takibi (rozet)
+const LIST_KEY = "um_notify_list_v1";             // bildirim listesi (kalıcı)
 const INTERVAL_MS = 60 * 1000;
 const MAX_LIST = 15;
 const TZ = "Europe/Istanbul";
 
-// Naive ISO (timezone’suz) gelirse UTC varsay: "2025-10-29T00:41:00" -> "2025-10-29T00:41:00Z"
+// ---- storage helpers ----
+const loadSet = (key) => {
+  try { return new Set(JSON.parse(localStorage.getItem(key) || "[]")); }
+  catch { return new Set(); }
+};
+const saveSet = (key, set) => {
+  try { localStorage.setItem(key, JSON.stringify(Array.from(set))); } catch {}
+};
+const loadList = () => {
+  try {
+    const arr = JSON.parse(localStorage.getItem(LIST_KEY) || "[]");
+    // id’leri string’e normalize et (eşleşme sorununu önler)
+    return Array.isArray(arr) ? arr.map(x => ({ ...x, id: String(x.id) })) : [];
+  } catch {
+    return [];
+  }
+};
+const saveList = (arr) => {
+  try { localStorage.setItem(LIST_KEY, JSON.stringify(arr)); } catch {}
+};
+
+// Naive ISO (timezone’suz) gelirse UTC varsay
 const parseUTC = (s) => {
   if (!s) return null;
   const hasTz = /[zZ]|[+\-]\d{2}:\d{2}$/.test(s);
@@ -21,17 +44,9 @@ const parseUTC = (s) => {
   return isNaN(d.getTime()) ? null : d;
 };
 
-const loadSeen = () => {
-  try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]")); }
-  catch { return new Set(); }
-};
-const saveSeen = (set) => {
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(set))); } catch {}
-};
-
 export default function NotificationBell() {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState([]);          // {id,title,clubName,startAt,when,ts}
   const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
 
@@ -41,67 +56,116 @@ export default function NotificationBell() {
     return d.toLocaleString("tr-TR", {
       dateStyle: "short",
       timeStyle: "short",
-      timeZone: TZ,             // <<— saat farkını düzelt
+      timeZone: TZ,
       hour12: false
     });
+  };
+
+  // unread = list − readSet
+  const recalcUnread = (list) => {
+    const readSet = loadSet(READ_KEY);
+    const count = list.reduce((acc, e) => acc + (readSet.has(String(e.id)) ? 0 : 1), 0);
+    setUnreadCount(count);
   };
 
   async function fetchNewlyCreated(initial = false) {
     try {
       const { data } = await api.get("/api/Events/feed?upcomingOnly=false&includeCancelled=false");
-      const list = Array.isArray(data) ? data : [];
+      const feed = Array.isArray(data) ? data : [];
 
-      const seen = loadSeen();
-      // İlk girişte mevcutları “görülmüş” sayıp bildirimi sıfırdan başlatıyoruz.
+      const seen = loadSet(SEEN_KEY);
+
+      // İlk girişte mevcut feed'i "görülmüş" say → bildirim üretme (spam önleme)
       if (initial && seen.size === 0) {
-        list.forEach(e => seen.add(String(e.eventId ?? e.id)));
-        saveSeen(seen);
-        return;
+        feed.forEach(e => seen.add(String(e.eventId ?? e.id)));
+        saveSet(SEEN_KEY, seen);
+        // elde var olan yerel liste ve unread korunur
       }
 
-      const newly = list
+      // Yeni düşenleri tespit et
+      const newly = feed
         .filter(e => !seen.has(String(e.eventId ?? e.id)))
         .map(e => ({
           id: String(e.eventId ?? e.id),
           title: e.title,
           clubName: e.clubName || "Kulüp",
-          startAt: e.startAt
+          startAt: e.startAt,
+          when: formatWhen(e.startAt),
+          ts: Date.now(),
         }));
 
       if (newly.length > 0) {
-        setItems(prev => {
-          const next = [
-            ...newly.map(n => ({
-              ...n,
-              when: formatWhen(n.startAt),
-              ts: Date.now()
-            })),
-            ...prev
-          ];
-          return next.slice(0, MAX_LIST);
-        });
-        setUnreadCount(prev => prev + newly.length);
+        // Mevcut kalıcı listeyi getir → yeni öğeleri üste ekle → MAX_LIST
+        const current = loadList();
+        const merged = [...newly, ...current.filter(x => !newly.find(n => n.id === x.id))].slice(0, MAX_LIST);
+
+        saveList(merged);
+        setItems(merged);
+
         newly.forEach(n => seen.add(n.id));
-        saveSeen(seen);
+        saveSet(SEEN_KEY, seen);
+
+        recalcUnread(merged);
+      } else if (!initial) {
+        // yeni yoksa da mevcut listeye göre rozet tazele
+        recalcUnread(loadList());
       }
     } catch {
       /* sessiz geç */
     }
   }
 
+  // Mount: önce yerel listeyi yükle (navigasyon sonrası korunsun), sonra fetch
   useEffect(() => {
+    const stored = loadList();
+    setItems(stored);
+    recalcUnread(stored);
+
     fetchNewlyCreated(true);
     const id = setInterval(() => fetchNewlyCreated(false), INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
 
-  const handleOpen = (e) => { setAnchorEl(e.currentTarget); setUnreadCount(0); };
+  // Menü açılışında artık unread’i sıfırlamıyoruz
+  const handleOpen = (e) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
+
+  // Tek bildirimi okundu say + listeden çıkar + kalıcı kaydet + rozet azalt + yönlendir
+  const markOneReadAndGo = (id, href) => {
+    const strId = String(id);
+
+    // 1) okundu seti
+    const readSet = loadSet(READ_KEY);
+    if (!readSet.has(strId)) {
+      readSet.add(strId);
+      saveSet(READ_KEY, readSet);
+    }
+
+    // 2) listeden çıkar (hem state hem localStorage)
+    const updated = items.filter(i => String(i.id) !== strId);
+    setItems(updated);
+    saveList(updated);
+
+    // 3) rozet güncelle
+    recalcUnread(updated);
+
+    // 4) küçük bir gecikmeyle yönlendir (UI güncellemeyi görsün)
+    setTimeout(() => { window.location.href = href; }, 50);
+  };
+
+  // (opsiyonel) tümünü okundu say
+  const markAllRead = () => {
+    const readSet = loadSet(READ_KEY);
+    items.forEach(i => readSet.add(String(i.id)));
+    saveSet(READ_KEY, readSet);
+    // hepsini listeden kaldırmak istemiyorsan sadece rozet güncelle:
+    recalcUnread(items);
+  };
 
   return (
     <>
       <IconButton color="inherit" onClick={handleOpen} aria-label="bildirimler" sx={{ ml: 1 }}>
-        <Badge badgeContent={unreadCount} max={9} color="primary">
+        <Badge badgeContent={unreadCount} max={99} color="primary">
           {unreadCount > 0 ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}
         </Badge>
       </IconButton>
@@ -115,12 +179,16 @@ export default function NotificationBell() {
         PaperProps={{ sx: { width: 360, p: 0.5 } }}
       >
         <Box>
-          <Box sx={{ px: 1.5, py: 1 }}>
+          <Box sx={{ px: 1.5, py: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               Yeni etkinlikler (üyeliklerin)
             </Typography>
+            {items.length > 0 && (
+              <Button size="small" onClick={markAllRead}>Tümünü okundu say</Button>
+            )}
           </Box>
           <Divider />
+
           {items.length === 0 ? (
             <Box sx={{ p: 2 }}>
               <Typography variant="body2" color="text.secondary">
@@ -135,8 +203,8 @@ export default function NotificationBell() {
               <MenuList dense>
                 {items.map((e) => (
                   <MenuItem
-                    key={`${e.id}-${e.ts}`}
-                    onClick={() => { window.location.href = "/events"; }}
+                    key={e.id}
+                    onClick={() => markOneReadAndGo(e.id, "/events")}
                   >
                     <ListItemText
                       primary={`"${e.title}" — ${e.clubName}`}
