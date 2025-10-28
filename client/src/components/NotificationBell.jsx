@@ -1,58 +1,107 @@
+// src/components/NotificationBell.jsx
 import { useEffect, useState } from "react";
 import {
-  IconButton, Badge, Menu, Box, Typography, Divider, Button, MenuList, MenuItem, ListItemText
+  IconButton, Badge, Menu, Box, Typography, Divider, Button,
+  MenuList, MenuItem, ListItemText
 } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { api } from "../api/index";
 
-function toLocal(d) { return new Date(d); }
+const SEEN_KEY = "um_seen_event_ids_v1";
+const INTERVAL_MS = 60 * 1000;
+const MAX_LIST = 15;
+const TZ = "Europe/Istanbul";
+
+// Naive ISO (timezone’suz) gelirse UTC varsay: "2025-10-29T00:41:00" -> "2025-10-29T00:41:00Z"
+const parseUTC = (s) => {
+  if (!s) return null;
+  const hasTz = /[zZ]|[+\-]\d{2}:\d{2}$/.test(s);
+  const d = new Date(hasTz ? s : s + "Z");
+  return isNaN(d.getTime()) ? null : d;
+};
+
+const loadSeen = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]")); }
+  catch { return new Set(); }
+};
+const saveSeen = (set) => {
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(set))); } catch {}
+};
 
 export default function NotificationBell() {
   const [anchorEl, setAnchorEl] = useState(null);
-  const [items, setItems] = useState([]); // 24 saat içindeki etkinlikler
+  const [items, setItems] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
 
-  async function fetchUpcoming() {
+  const formatWhen = (iso) => {
+    const d = parseUTC(iso);
+    if (!d) return "-";
+    return d.toLocaleString("tr-TR", {
+      dateStyle: "short",
+      timeStyle: "short",
+      timeZone: TZ,             // <<— saat farkını düzelt
+      hour12: false
+    });
+  };
+
+  async function fetchNewlyCreated(initial = false) {
     try {
-      const { data } = await api.get("/api/Events/upcoming");
-      const now = new Date();
-      const in24h = 24 * 60 * 60 * 1000;
+      const { data } = await api.get("/api/Events/feed?upcomingOnly=false&includeCancelled=false");
+      const list = Array.isArray(data) ? data : [];
 
-      const list = (Array.isArray(data) ? data : [])
-        .map(e => ({ ...e, start: toLocal(e.startAt ?? e.startTimeUtc ?? e.startTime) }))
-        .filter(e => {
-          const dt = e.start.getTime() - now.getTime();
-          return dt > 0 && dt <= in24h;
-        })
-        .sort((a, b) => a.start - b.start);
+      const seen = loadSeen();
+      // İlk girişte mevcutları “görülmüş” sayıp bildirimi sıfırdan başlatıyoruz.
+      if (initial && seen.size === 0) {
+        list.forEach(e => seen.add(String(e.eventId ?? e.id)));
+        saveSeen(seen);
+        return;
+      }
 
-      setItems(list);
-      setUnreadCount(list.length);
-    } catch (err) {
-      console.warn("upcoming fetch hatası:", err?.response?.status, err?.message);
-      setItems([]);
-      setUnreadCount(0);
+      const newly = list
+        .filter(e => !seen.has(String(e.eventId ?? e.id)))
+        .map(e => ({
+          id: String(e.eventId ?? e.id),
+          title: e.title,
+          clubName: e.clubName || "Kulüp",
+          startAt: e.startAt
+        }));
+
+      if (newly.length > 0) {
+        setItems(prev => {
+          const next = [
+            ...newly.map(n => ({
+              ...n,
+              when: formatWhen(n.startAt),
+              ts: Date.now()
+            })),
+            ...prev
+          ];
+          return next.slice(0, MAX_LIST);
+        });
+        setUnreadCount(prev => prev + newly.length);
+        newly.forEach(n => seen.add(n.id));
+        saveSeen(seen);
+      }
+    } catch {
+      /* sessiz geç */
     }
   }
 
   useEffect(() => {
-    fetchUpcoming();
-    const id = setInterval(fetchUpcoming, 10 * 60 * 1000);
+    fetchNewlyCreated(true);
+    const id = setInterval(() => fetchNewlyCreated(false), INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
 
-  const handleOpen = (e) => {
-    setAnchorEl(e.currentTarget);
-    setUnreadCount(0); // açınca okundu say
-  };
+  const handleOpen = (e) => { setAnchorEl(e.currentTarget); setUnreadCount(0); };
   const handleClose = () => setAnchorEl(null);
 
   return (
     <>
       <IconButton color="inherit" onClick={handleOpen} aria-label="bildirimler" sx={{ ml: 1 }}>
-        <Badge badgeContent={unreadCount} max={9}>
+        <Badge badgeContent={unreadCount} max={9} color="primary">
           {unreadCount > 0 ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}
         </Badge>
       </IconButton>
@@ -63,50 +112,44 @@ export default function NotificationBell() {
         onClose={handleClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        PaperProps={{ sx: { width: 340, p: 0.5 } }}
+        PaperProps={{ sx: { width: 360, p: 0.5 } }}
       >
-        {/* ✅ TEK SARMALEYICI: Artık Menu’nun doğrudan çocuğu Fragment değil */}
         <Box>
           <Box sx={{ px: 1.5, py: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Hatırlatmalar (24 saat)
+              Yeni etkinlikler (üyeliklerin)
             </Typography>
           </Box>
           <Divider />
-
           {items.length === 0 ? (
             <Box sx={{ p: 2 }}>
               <Typography variant="body2" color="text.secondary">
-                Yaklaşan 24 saat içinde etkinlik yok.
+                Üye olduğun kulüplerden yeni etkinlik bildirimi yok.
               </Typography>
               <Box sx={{ textAlign: "right", mt: 1 }}>
-                <Button size="small" onClick={fetchUpcoming}>Yenile</Button>
+                <Button size="small" onClick={() => fetchNewlyCreated(false)}>Yenile</Button>
               </Box>
             </Box>
           ) : (
             <>
               <MenuList dense>
-                {items.map((e) => {
-                  const gun = e.start.toLocaleDateString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit" });
-                  const saat = e.start.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-                  return (
-                    <MenuItem
-                      key={e.eventId ?? e.id}
-                      onClick={() => { window.location.href = `/events/${e.eventId ?? e.id}`; }}
-                    >
-                      <ListItemText
-                        primary={e.title}
-                        secondary={`Başlangıç: ${gun} ${saat}`}
-                        primaryTypographyProps={{ noWrap: true }}
-                        secondaryTypographyProps={{ noWrap: true }}
-                      />
-                    </MenuItem>
-                  );
-                })}
+                {items.map((e) => (
+                  <MenuItem
+                    key={`${e.id}-${e.ts}`}
+                    onClick={() => { window.location.href = "/events"; }}
+                  >
+                    <ListItemText
+                      primary={`"${e.title}" — ${e.clubName}`}
+                      secondary={`Başlangıç: ${e.when}`}
+                      primaryTypographyProps={{ noWrap: true }}
+                      secondaryTypographyProps={{ noWrap: true }}
+                    />
+                  </MenuItem>
+                ))}
               </MenuList>
               <Divider />
               <Box sx={{ display: "flex", justifyContent: "space-between", p: 1 }}>
-                <Button size="small" onClick={fetchUpcoming}>Yenile</Button>
+                <Button size="small" onClick={() => fetchNewlyCreated(false)}>Yenile</Button>
                 <Button size="small" onClick={handleClose}>Kapat</Button>
               </Box>
             </>

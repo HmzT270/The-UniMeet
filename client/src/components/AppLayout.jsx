@@ -1,11 +1,20 @@
 // src/components/AppLayout.jsx
 import { Box, AppBar, Toolbar, Typography, Button, Stack } from "@mui/material";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 import NotificationBell from "./NotificationBell";
 
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 🔐 Rol bilgisi: localStorage'daki "user"
+  const user = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
+  }, []);
+  const role = user?.role ?? null;
+  const isAdmin = role === "Admin";
+  const isManager = role === "Manager";
 
   const getPageTitle = () => {
     switch (location.pathname) {
@@ -17,7 +26,6 @@ export default function AppLayout() {
     }
   };
 
-  // Sağ üst menüde link görünümlü düğme stili
   const linkBtnSx = {
     px: 1.5,
     py: 0.75,
@@ -54,18 +62,16 @@ export default function AppLayout() {
               Kulüpler
             </Button>
 
-            <Button
-              variant="contained"
-              onClick={() => navigate("/manageevents")}
-              sx={{
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: 0.6,
-                boxShadow: "none",
-              }}
-            >
-              Etkinlik Oluştur
-            </Button>
+            {/* 🔒 Sadece Admin/Manager görsün */}
+            {(isAdmin || isManager) && (
+              <Button
+                variant="contained"
+                onClick={() => navigate("/manageevents")}
+                sx={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, boxShadow: "none" }}
+              >
+                Etkinlik Oluştur
+              </Button>
+            )}
 
             {/* Bildirim zili */}
             <NotificationBell />
