@@ -1,6 +1,4 @@
 import {
-  AppBar,
-  Toolbar,
   Typography,
   Container,
   Box,
@@ -116,15 +114,6 @@ export default function Clubs() {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            UniMeet — Kulüpler
-          </Typography>
-          <Button onClick={() => navigate("/home")} variant="outlined">Ana Sayfa</Button>
-        </Toolbar>
-      </AppBar>
-
       <Container maxWidth="lg">
         <Box sx={{ mt: 4, mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
           <Typography variant="h5">Kayıtlı Kulüpler</Typography>

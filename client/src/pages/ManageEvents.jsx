@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import {
-  AppBar, Toolbar, Typography, Container, Paper, Stack,
+  Typography, Container, Paper, Stack,
   TextField, Button, Snackbar, Alert, Box, FormControl,
   InputLabel, Select, MenuItem
 } from "@mui/material";
@@ -168,13 +168,6 @@ export default function ManageEvents() {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>UniMeet — Etkinlik Oluştur</Typography>
-          <Button onClick={() => navigate("/home")}>Ana Sayfa</Button>
-        </Toolbar>
-      </AppBar>
-
       <Container maxWidth="md" sx={{ mt: 4, mb: 6 }}>
         <Paper sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Etkinlik Bilgileri</Typography>

@@ -1,6 +1,4 @@
 import {
-  AppBar,
-  Toolbar,
   Typography,
   Button,
   Container,
@@ -19,13 +17,10 @@ import {
   TextField,
   Autocomplete
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/index";
 
 export default function Events() {
-  const navigate = useNavigate();
-
   // Kullanıcı
   const user = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
@@ -289,28 +284,6 @@ export default function Events() {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            UniMeet — Etkinlikler
-          </Typography>
-
-          {/* ✅ YENİ: Ana Sayfa ve Kulüpler butonları */}
-          <Button onClick={() => navigate("/home")} sx={{ mr: 1 }}>
-            Ana Sayfa
-          </Button>
-          <Button variant="outlined" onClick={() => navigate("/clubs")} sx={{ mr: 1 }}>
-            Kulüpler
-          </Button>
-
-          {(isAdmin || isManager) && (
-            <Button variant="contained" onClick={() => navigate("/manageevents")}>
-              Etkinlik Oluştur
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
-
       <Container maxWidth="lg">
         <Box sx={{ mt: 4 }}>
           <Typography variant="h5" sx={{ mb: 2 }}>

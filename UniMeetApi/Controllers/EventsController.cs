@@ -264,7 +264,56 @@ namespace UniMeetApi.Controllers
             return NoContent();
         }
 
-        // === ✅ YENİ: Takip edilen kulüplerin etkinlikleri (Home feed) ===
+        // === ✅ YENİ: 24 saat içindeki etkinlikler (kullanıcının kulüpleri) ===
+        [HttpGet("upcoming")]
+        [Authorize]
+        public async Task<ActionResult<List<EventDto>>> Upcoming([FromQuery] bool includeCancelled = false)
+        {
+            if (!TryGetUserId(out var userId))
+                return Unauthorized("Kullanıcı bilgisi alınamadı.");
+
+            // Kullanıcının üye olduğu kulüpler
+            var myClubIds = await _db.ClubMembers
+                .Where(m => m.UserId == userId)
+                .Select(m => m.ClubId)
+                .ToListAsync();
+
+            if (myClubIds.Count == 0)
+                return Ok(new List<EventDto>());
+
+            var now = DateTime.UtcNow;
+            var until = now.AddHours(24);
+
+            var query = _db.Events.AsNoTracking()
+                .Where(e =>
+                    myClubIds.Contains(e.ClubId) &&
+                    e.StartAt > now &&
+                    e.StartAt <= until
+                );
+
+            if (!includeCancelled)
+                query = query.Where(e => !e.IsCancelled);
+
+            var list = await query
+                .OrderBy(e => e.StartAt)
+                .Select(e => new EventDto(
+                    e.EventId,
+                    e.Title,
+                    e.Location,
+                    e.StartAt,
+                    e.EndAt,
+                    e.Quota,
+                    e.ClubId,
+                    _db.Clubs.Where(c => c.ClubId == e.ClubId).Select(c => (string?)c.Name).FirstOrDefault(),
+                    e.Description,
+                    e.IsCancelled
+                ))
+                .ToListAsync();
+
+            return Ok(list);
+        }
+
+        // === ✅ Takip edilen kulüplerin etkinlikleri (Home feed) ===
         [HttpGet("feed")]
         [Authorize]
         public async Task<ActionResult<List<EventDto>>> Feed(

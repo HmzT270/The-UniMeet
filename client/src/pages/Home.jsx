@@ -1,7 +1,5 @@
 // src/pages/Home.jsx
 import {
-  AppBar,
-  Toolbar,
   Typography,
   Container,
   Box,
@@ -38,8 +36,6 @@ export default function Home() {
   const [eventsErr, setEventsErr] = useState("");
 
   // ---- Yardımcılar ----
-  const pad = (n) => String(n).padStart(2, "0");
-
   const parseAsUtc = (s) => {
     if (!s) return null;
     const hasTz = /[zZ]|[+\-]\d{2}:\d{2}$/.test(s);
@@ -75,8 +71,6 @@ export default function Home() {
       setClubsLoading(true);
       setClubsErr("");
       try {
-        // Tercihen: /api/Clubs/joined
-        // Backend farklıysa fallback: /Clubs/joined
         const { data } = await getWithFallback("/api/Clubs/joined", "/Clubs/joined");
         if (!ignore) setMyClubs(Array.isArray(data) ? data : []);
       } catch (e) {
@@ -92,14 +86,12 @@ export default function Home() {
   }, []);
 
   // FEED: Takip edilen kulüplerin etkinlikleri
-  // Not: upcomingOnly=false alıyoruz; client’ta küçük bir toleransla süzüyoruz.
   useEffect(() => {
     let ignore = false;
     (async () => {
       setEventsLoading(true);
       setEventsErr("");
       try {
-        // includeCancelled=false & upcomingOnly=false
         const { data } = await api.get("/api/Events/feed?includeCancelled=false&upcomingOnly=false");
         if (!ignore) setEvents(Array.isArray(data) ? data : []);
       } catch (e) {
@@ -116,17 +108,14 @@ export default function Home() {
 
   // Feed'i tarihe göre sırala + küçük zaman toleransı uygula
   const myFeed = useMemo(() => {
-    // Son 12 saatlik tolerans (UTC kaymaları/past sınırı için)
     const TOLERANCE_MS = 12 * 60 * 60 * 1000;
     const now = Date.now();
 
-    // Süz: başlangıç zamanı "şu an - tolerans" sonrası olanlar
     const filtered = (events || []).filter((e) => {
       const t = parseAsUtc(e?.startAt)?.getTime();
       return typeof t === "number" && t >= (now - TOLERANCE_MS);
     });
 
-    // Sırala
     return filtered.sort((a, b) => {
       const da = parseAsUtc(a?.startAt)?.getTime() ?? 0;
       const db = parseAsUtc(b?.startAt)?.getTime() ?? 0;
@@ -136,26 +125,6 @@ export default function Home() {
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            UniMeet — Ana Sayfa
-          </Typography>
-          {/* Navigasyon */}
-          <Button onClick={() => navigate("/events")} sx={{ mr: 1 }}>
-            Etkinlikler
-          </Button>
-          <Button variant="outlined" onClick={() => navigate("/clubs")}>
-            Kulüpler
-          </Button>
-          {(isAdmin || isManager) && (
-            <Button variant="contained" onClick={() => navigate("/manageevents")} sx={{ ml: 1 }}>
-              Etkinlik Oluştur
-            </Button>
-          )}
-        </Toolbar>
-      </AppBar>
-
       <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
         {/* Katıldığım Kulüpler */}
         <Box sx={{ mb: 3 }}>
@@ -176,8 +145,7 @@ export default function Home() {
                 </Button>
               }
             >
-              Henüz herhangi bir kulübe katılmadın. Kulüplere katıl ve
-              etkinlikleri burada gör.
+              Henüz herhangi bir kulübe katılmadın. Kulüplere katıl ve etkinlikleri burada gör.
             </Alert>
           ) : (
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
