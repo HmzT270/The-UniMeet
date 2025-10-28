@@ -1,4 +1,4 @@
-// src/components/AppLayout.jsx
+// src/components/AppLayout.jsx 
 import { Box, AppBar, Toolbar, Typography, Button, Stack } from "@mui/material";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useMemo } from "react";
@@ -44,9 +44,22 @@ export default function AppLayout() {
   };
 
   return (
-    <Box>
-      <AppBar position="static" color="default" elevation={1}>
-        <Toolbar>
+    <Box sx={{ flexGrow: 1 }}>
+      {/* Kenardan kenara tam genişlik */}
+      <AppBar
+        position="fixed"
+        color="default"
+        elevation={1}
+        sx={{
+          left: 0,
+          right: 0,
+          m: 0,
+          px: 0,
+          borderRadius: 0,
+          width: "100vw",
+        }}
+      >
+        <Toolbar sx={{ px: 2 }}>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             UniMeet — {getPageTitle()}
           </Typography>
@@ -78,6 +91,9 @@ export default function AppLayout() {
           </Stack>
         </Toolbar>
       </AppBar>
+
+      {/* Spacer: AppBar sabit olduğu için içerik aşağı insin */}
+      <Toolbar />
 
       <Box sx={{ p: 3 }}>
         <Outlet />
