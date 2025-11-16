@@ -284,13 +284,13 @@ export default function Events() {
 
   return (
     <>
-      <Container maxWidth="lg">
-        <Box sx={{ mt: 4 }}>
-          <Typography variant="h5" sx={{ mb: 2 }}>
-            Hoş geldin! 🎉
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mt: { xs: 2, sm: 4 } }}>
+          <Typography variant="h5" sx={{ mb: 1, fontWeight: 600, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
+            🎪 Tüm Etkinlikler
           </Typography>
-          <Typography color="text.secondary" sx={{ mb: 4 }}>
-            Etkinlikleri görüntüleyebilir, yetkin varsa düzenleyebilir/silebilirsin.
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3, fontWeight: 500, fontSize: { xs: "0.875rem", sm: "1rem" } }}>
+            Kampüste düzenlenen tüm etkinliklere göz at
           </Typography>
 
           {/* === YENİ: Kulüp Çoklu Filtresi (Kısaltılmış) === */}
@@ -321,21 +321,53 @@ export default function Events() {
           ) : (
             <Stack spacing={2}>
               {filteredEvents.map((e) => (
-                <Card key={e.eventId} sx={{ cursor: "pointer" }} onClick={() => openDetail(e.eventId)}>
-                  <CardContent>
-                    <Typography variant="h6">{e.title}</Typography>
-                    <Typography color="text.secondary">
-                      📍 {e.location} — 🕒 {fmt(e.startAt)}
+                <Card 
+                  key={e.eventId} 
+                  sx={{ 
+                    cursor: "pointer",
+                    transition: "all 0.2s ease-in-out",
+                    border: "2px solid #6a4cff",
+                    background: "linear-gradient(135deg, rgba(106, 76, 255, 0.05) 0%, rgba(140, 111, 255, 0.08) 100%)",
+                    "&:hover": {
+                      transform: "translateY(-4px) scale(1.01)",
+                      boxShadow: "0 12px 32px rgba(106, 76, 255, 0.3)",
+                      border: "2px solid #8c6fff",
+                      background: "linear-gradient(135deg, rgba(106, 76, 255, 0.1) 0%, rgba(140, 111, 255, 0.15) 100%)",
+                    },
+                  }} 
+                  onClick={() => openDetail(e.eventId)}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+                      {e.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: { xs: "0.875rem", sm: "0.875rem" } }}>
+                      📍 {e.location}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.875rem", sm: "0.875rem" } }}>
+                      🕒 {fmt(e.startAt)}
                     </Typography>
                     {e.endAt && (
-                      <Typography color="text.secondary">
-                        ⏱ Bitiş: {fmt(e.endAt)}
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.875rem", sm: "0.875rem" } }}>
+                        ⏱ {fmt(e.endAt)}
                       </Typography>
                     )}
                     {e.clubName && (
-                      <Typography sx={{ mt: 1 }} color="primary">
-                        {e.clubName}
-                      </Typography>
+                      <Chip 
+                        label={e.clubName} 
+                        size="small" 
+                        color="primary"
+                        sx={{ 
+                          mt: 1.5, 
+                          fontWeight: 600, 
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                          transition: "all 0.2s ease-in-out",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 4px 12px rgba(106, 76, 255, 0.3)",
+                          },
+                        }}
+                      />
                     )}
                   </CardContent>
                 </Card>

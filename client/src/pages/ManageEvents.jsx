@@ -168,15 +168,89 @@ export default function ManageEvents() {
 
   return (
     <>
-      <Container maxWidth="md" sx={{ mt: 4, mb: 6 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Etkinlik Bilgileri</Typography>
+      <Container maxWidth="md" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: { xs: 3, sm: 4 },
+            borderRadius: 3,
+            border: "1px solid rgba(106, 76, 255, 0.12)",
+            boxShadow: "0 8px 32px rgba(106, 76, 255, 0.08)",
+          }}
+        >
+          <Box sx={{ mb: 3, textAlign: "center" }}>
+            <Box
+              sx={{
+                width: { xs: 50, sm: 60 },
+                height: { xs: 50, sm: 60 },
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #6a4cff 0%, #8c6fff 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mx: "auto",
+                mb: 2,
+                fontSize: { xs: "1.5rem", sm: "1.8rem" },
+                boxShadow: "0 6px 20px rgba(106, 76, 255, 0.25)",
+              }}
+            >
+              ✨
+            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
+              Yeni Etkinlik Oluştur
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}>
+              Öğrenciler için heyecan verici bir etkinlik düzenle
+            </Typography>
+          </Box>
 
-          <Stack spacing={2}>
-            {error && <Alert severity="error">{error}</Alert>}
+          <Stack spacing={3}>
+            {error && (
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  borderRadius: 2,
+                  border: "1px solid rgba(211, 47, 47, 0.3)",
+                }}
+              >
+                {error}
+              </Alert>
+            )}
 
-            <TextField label="Etkinlik Adı" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            <TextField label="Yer" value={location} onChange={(e) => setLocation(e.target.value)} required />
+            <TextField 
+              label="Etkinlik Adı" 
+              value={title} 
+              onChange={(e) => setTitle(e.target.value)} 
+              required
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover": {
+                    boxShadow: "0 4px 12px rgba(106, 76, 255, 0.08)",
+                  },
+                  "&.Mui-focused": {
+                    boxShadow: "0 4px 16px rgba(106, 76, 255, 0.12)",
+                  },
+                },
+              }}
+            />
+            <TextField 
+              label="Yer" 
+              value={location} 
+              onChange={(e) => setLocation(e.target.value)} 
+              required
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  "&:hover": {
+                    boxShadow: "0 4px 12px rgba(106, 76, 255, 0.08)",
+                  },
+                  "&.Mui-focused": {
+                    boxShadow: "0 4px 16px rgba(106, 76, 255, 0.12)",
+                  },
+                },
+              }}
+            />
 
             {/* Başlangıç */}
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
@@ -259,10 +333,41 @@ export default function ManageEvents() {
               onChange={(e) => setDescription(e.target.value)}
             />
 
-            <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 1 }}>
-              <Button variant="outlined" onClick={() => navigate("/home")}>Vazgeç</Button>
-              <Button variant="contained" onClick={handleSubmit} disabled={submitting || hasErrors}>
-                {submitting ? "Kaydediliyor..." : "Oluştur"}
+            <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 2, flexWrap: "wrap" }}>
+              <Button 
+                variant="outlined" 
+                onClick={() => navigate("/home")}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: { xs: 2, sm: 3 },
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  "&:hover": {
+                    backgroundColor: "rgba(106, 76, 255, 0.05)",
+                  },
+                }}
+              >
+                Vazgeç
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleSubmit} 
+                disabled={submitting || hasErrors}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  px: { xs: 2, sm: 3 },
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  boxShadow: "0 6px 20px rgba(106, 76, 255, 0.3)",
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 8px 28px rgba(106, 76, 255, 0.4)",
+                  },
+                }}
+              >
+                {submitting ? "Kaydediliyor..." : "🚀 Oluştur"}
               </Button>
             </Box>
           </Stack>

@@ -125,22 +125,54 @@ export default function Home() {
 
   return (
     <>
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
+      <Container maxWidth="lg" sx={{ mt: { xs: 1, sm: 2 }, mb: { xs: 4, sm: 6 }, px: { xs: 2, sm: 3 } }}>
+        {/* Hoş geldin mesajı */}
+        <Box sx={{ mb: { xs: 3, sm: 4 }, mt: { xs: 1, sm: 2 } }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, fontSize: { xs: "1.75rem", sm: "2rem", md: "2.125rem" } }}>
+            🎓 Hoş Geldin!
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: "0.875rem", sm: "1rem" } }}>
+            Kampüsteki en güncel etkinlikleri keşfet ve arkadaşlarınla buluş
+          </Typography>
+        </Box>
+
         {/* Katıldığım Kulüpler */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ mb: 1.5 }}>Takip Ettiğin Kulüpler</Typography>
+        <Box sx={{ mb: { xs: 3, sm: 4 } }}>
+          <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
+            💜 Takip Ettiğin Kulüpler
+          </Typography>
 
           {clubsLoading ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <CircularProgress size={20} /> <Typography>Yükleniyor…</Typography>
+              <CircularProgress size={20} sx={{ color: "#6a4cff" }} /> 
+              <Typography color="text.secondary">Yükleniyor…</Typography>
             </Box>
           ) : clubsErr ? (
-            <Alert severity="error">{clubsErr}</Alert>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                borderRadius: 2,
+                border: "1px solid rgba(211, 47, 47, 0.3)",
+              }}
+            >
+              {clubsErr}
+            </Alert>
           ) : myClubs.length === 0 ? (
             <Alert
               severity="info"
+              sx={{ 
+                borderRadius: 2,
+                border: "1px solid rgba(2, 136, 209, 0.3)",
+              }}
               action={
-                <Button size="small" variant="contained" onClick={() => navigate("/clubs")}>
+                <Button 
+                  size="small" 
+                  variant="contained" 
+                  onClick={() => navigate("/clubs")}
+                  sx={{
+                    boxShadow: "0 2px 8px rgba(106, 76, 255, 0.25)",
+                  }}
+                >
                   Kulüpleri Gör
                 </Button>
               }
@@ -150,7 +182,20 @@ export default function Home() {
           ) : (
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               {myClubs.map((c) => (
-                <Chip key={c?.clubId ?? c?.name} label={c?.name ?? "Kulüp"} color="primary" variant="outlined" />
+                <Chip 
+                  key={c?.clubId ?? c?.name} 
+                  label={c?.name ?? "Kulüp"} 
+                  color="primary" 
+                  variant="filled"
+                  sx={{ 
+                    fontWeight: 600,
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 12px rgba(106, 76, 255, 0.3)",
+                    },
+                  }}
+                />
               ))}
             </Stack>
           )}
@@ -158,42 +203,84 @@ export default function Home() {
 
         {/* Feed: Katıldığım kulüplerin etkinlikleri */}
         <Box>
-          <Typography variant="h6" sx={{ mb: 1.5 }}>
-            Senin İçin Etkinlikler
+          <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
+            ✨ Takip Edilen Kulüp Etkinlikleri
           </Typography>
 
           {eventsLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-              <CircularProgress />
+              <CircularProgress sx={{ color: "#6a4cff" }} />
             </Box>
           ) : eventsErr ? (
-            <Alert severity="error">{eventsErr}</Alert>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                borderRadius: 2,
+                border: "1px solid rgba(211, 47, 47, 0.3)",
+              }}
+            >
+              {eventsErr}
+            </Alert>
           ) : myClubs.length === 0 ? (
-            <Alert severity="info">
+            <Alert 
+              severity="info" 
+              sx={{ 
+                borderRadius: 2,
+                border: "1px solid rgba(2, 136, 209, 0.3)",
+              }}
+            >
               Kulüplere katıldığında, o kulüplerin etkinlikleri burada listelenecek.
             </Alert>
           ) : myFeed.length === 0 ? (
-            <Alert severity="info">
+            <Alert 
+              severity="info" 
+              sx={{ 
+                borderRadius: 2,
+                border: "1px solid rgba(2, 136, 209, 0.3)",
+              }}
+            >
               Takip ettiğin kulüplere ait yaklaşan etkinlik bulunmuyor.
             </Alert>
           ) : (
             <Stack spacing={2}>
               {myFeed.map((e) => (
-                <Card key={e.eventId} sx={{ cursor: "default" }}>
-                  <CardContent>
-                    <Typography variant="h6">{e.title}</Typography>
-                    <Typography color="text.secondary">
-                      📍 {e.location} — 🕒 {fmt(e.startAt)}
+                <Card 
+                  key={e.eventId}
+                  sx={{
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "translateY(-4px) scale(1.01)",
+                      boxShadow: "0 12px 32px rgba(106, 76, 255, 0.15)",
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+                      {e.title}
                     </Typography>
-                    {e.endAt && (
-                      <Typography color="text.secondary">
-                        ⏱ Bitiş: {fmt(e.endAt)}
-                      </Typography>
-                    )}
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: { xs: "0.875rem", sm: "0.875rem" } }}>
+                      📍 {e.location}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.875rem", sm: "0.875rem" } }}>
+                      🕒 {fmt(e.startAt)}
+                      {e.endAt && ` - ${fmt(e.endAt)}`}
+                    </Typography>
                     {e.clubName && (
-                      <Typography sx={{ mt: 1 }} color="primary">
-                        {e.clubName}
-                      </Typography>
+                      <Chip
+                        label={e.clubName}
+                        size="small"
+                        color="primary"
+                        sx={{ 
+                          mt: 1.5, 
+                          fontWeight: 600, 
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                          transition: "all 0.2s ease-in-out",
+                          "&:hover": {
+                            transform: "translateY(-2px)",
+                            boxShadow: "0 4px 12px rgba(106, 76, 255, 0.3)",
+                          },
+                        }}
+                      />
                     )}
                   </CardContent>
                 </Card>

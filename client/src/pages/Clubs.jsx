@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api/index"; // ✅ import yolu sabitlendi
+import { api } from "../api/index"; // import yolu sabitlendi
 
 export default function Clubs() {
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ export default function Clubs() {
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
   const HAS_API_IN_BASE = /\/api\/?$/i.test(API_BASE);
 
-  // Örn: baseURL /api ile bitiyorsa "/Clubs/..." kullan, değilse "/api/Clubs/..."
+  // baseURL /api ile bitiyorsa "/Clubs/..." kullan, değilse "/api/Clubs/..."
   const path = (p) => (HAS_API_IN_BASE ? `/${p.replace(/^\/+/, "")}` : `/api/${p.replace(/^\/+/, "")}`);
 
   // --- Yardımcılar: önce birincil yolu dene, 404 ise alternatif yolu dene ---
@@ -114,11 +114,30 @@ export default function Clubs() {
 
   return (
     <>
-      <Container maxWidth="lg">
-        <Box sx={{ mt: 4, mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
-          <Typography variant="h5">Kayıtlı Kulüpler</Typography>
-          <Chip label={`${clubs.length} kulüp`} color="primary" variant="outlined" />
-          <Button onClick={fetchClubs} size="small" variant="text">Yenile</Button>
+      <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ mt: { xs: 2, sm: 4 }, mb: 3, display: "flex", alignItems: "center", gap: { xs: 1, sm: 2 }, flexWrap: "wrap" }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
+            Kayıtlı Kulüpler
+          </Typography>
+          <Chip 
+            label={`${clubs.length} kulüp`} 
+            color="primary" 
+            variant="filled"
+            sx={{ fontWeight: 600, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+          />
+          <Button 
+            onClick={fetchClubs} 
+            size="small" 
+            variant="text"
+            sx={{
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              "&:hover": {
+                backgroundColor: "rgba(106, 76, 255, 0.08)",
+              },
+            }}
+          >
+            🔄 Yenile
+          </Button>
         </Box>
 
         {err && (
@@ -131,7 +150,11 @@ export default function Clubs() {
                 </Button>
               ) : null
             }
-            sx={{ mb: 2 }}
+            sx={{ 
+              mb: 2, 
+              borderRadius: 2,
+              border: "1px solid rgba(211, 47, 47, 0.3)",
+            }}
           >
             {String(err)}
           </Alert>
@@ -139,54 +162,128 @@ export default function Clubs() {
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-            <CircularProgress />
+            <CircularProgress sx={{ color: "#6a4cff" }} />
           </Box>
         ) : clubs.length === 0 ? (
-          <Alert severity="info">Henüz kayıtlı kulüp bulunmuyor.</Alert>
+          <Alert 
+            severity="info" 
+            sx={{ 
+              borderRadius: 2,
+              border: "1px solid rgba(2, 136, 209, 0.3)",
+            }}
+          >
+            Henüz kayıtlı kulüp bulunmuyor.
+          </Alert>
         ) : (
-          <Grid container spacing={2}>
+          <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
             {clubs.map((c) => (
               <Grid item key={c?.clubId ?? c?.id ?? c?.name} xs={12} sm={6} md={4}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6">{c?.name ?? "Kulüp"}</Typography>
+                <Card
+                  sx={{
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    transition: "all 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "translateY(-6px) scale(1.02)",
+                      boxShadow: "0 16px 40px rgba(106, 76, 255, 0.18)",
+                    },
+                  }}
+                >
+                  <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+                      {c?.name ?? "Kulüp"}
+                    </Typography>
 
                     {c?.description && (
-                      <Typography color="text.secondary" sx={{ mt: 1, whiteSpace: "pre-wrap" }}>
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ 
+                          mt: 1, 
+                          mb: 2,
+                          whiteSpace: "pre-wrap",
+                          lineHeight: 1.6,
+                          fontSize: { xs: "0.875rem", sm: "0.875rem" },
+                        }}
+                      >
                         {c.description}
                       </Typography>
                     )}
 
-                    <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    <Box sx={{ mt: 1.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
                       {typeof c?.memberCount === "number" && (
-                        <Chip size="small" label={`Üye: ${c.memberCount}`} />
+                        <Chip 
+                          size="small" 
+                          label={`👥 ${c.memberCount} üye`}
+                          sx={{
+                            backgroundColor: "rgba(106, 76, 255, 0.1)",
+                            fontWeight: 600,
+                            fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                            transition: "all 0.2s ease-in-out",
+                            "&:hover": {
+                              backgroundColor: "rgba(106, 76, 255, 0.2)",
+                              transform: "translateY(-1px)",
+                            },
+                          }}
+                        />
                       )}
                       {c?.createdAt && (
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={new Date(c.createdAt).toLocaleDateString("tr-TR")}
+                          label={`📅 ${new Date(c.createdAt).toLocaleDateString("tr-TR")}`}
+                          sx={{
+                            fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                            transition: "all 0.2s ease-in-out",
+                            "&:hover": {
+                              borderColor: "#6a4cff",
+                              backgroundColor: "rgba(106, 76, 255, 0.05)",
+                              transform: "translateY(-1px)",
+                            },
+                          }}
                         />
                       )}
                     </Box>
 
-                    <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                    <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
                       {c?.isFollowing ? (
                         <Button
                           size="small"
                           variant="outlined"
                           color="error"
                           onClick={() => unfollow(c.clubId)}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: "none",
+                            fontWeight: 600,
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            "&:hover": {
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 4px 12px rgba(211, 47, 47, 0.2)",
+                            },
+                          }}
                         >
-                          Takibi Bırak
+                          ✖ Takibi Bırak
                         </Button>
                       ) : (
                         <Button
                           size="small"
                           variant="contained"
                           onClick={() => follow(c.clubId)}
+                          sx={{
+                            borderRadius: 2,
+                            textTransform: "none",
+                            fontWeight: 600,
+                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            boxShadow: "0 4px 12px rgba(106, 76, 255, 0.2)",
+                            "&:hover": {
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 6px 18px rgba(106, 76, 255, 0.3)",
+                            },
+                          }}
                         >
-                          Takip Et
+                          ✓ Takip Et
                         </Button>
                       )}
                     </Box>
