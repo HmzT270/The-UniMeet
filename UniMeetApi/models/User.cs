@@ -31,5 +31,15 @@ namespace UniMeetApi
 
         // ✅ Sadece Manager’lar için doldurulacak: yönettiği kulübün ID’si
         public int? ManagedClubId { get; set; }
+
+        public bool EmailConfirmed { get; set; } = true;
+
+        public string? VerificationToken { get; set; }
+
+        public DateTime? VerificationTokenExpiresAt { get; set; }
+
+        public bool RequiresPasswordReset { get; set; } = false;
+
+        public DateTime? PasswordSetAt { get; set; }
     }
 }

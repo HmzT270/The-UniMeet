@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/index";
-import { Button, TextField, Stack, Typography, Paper, Alert, Box } from "@mui/material";
+import { Button, TextField, Stack, Typography, Paper, Alert, Box, Divider } from "@mui/material";
 
 // 12 haneli öğrenci numarası + @dogus.edu.tr
 const emailRegex = /^\d{12}@dogus\.edu\.tr$/;
@@ -12,6 +12,10 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [firstTimeEmail, setFirstTimeEmail] = useState("");
+  const [verificationErr, setVerificationErr] = useState("");
+  const [verificationMsg, setVerificationMsg] = useState("");
+  const [verificationLoading, setVerificationLoading] = useState(false);
   const navigate = useNavigate();
 
   const isValidEmail = (e) => emailRegex.test(String(e || "").trim().toLowerCase());
@@ -69,6 +73,34 @@ export default function Login() {
   };
 
   const showFormatError = !!email && !isValidEmail(email);
+
+  const requestVerification = async () => {
+    setVerificationErr("");
+    setVerificationMsg("");
+
+    const normalizedEmail = firstTimeEmail.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      setVerificationErr("E-posta formatı: 12 haneli öğrenci no + @dogus.edu.tr");
+      return;
+    }
+
+    try {
+      setVerificationLoading(true);
+      await api.post("/api/Auth/request-verification", { email: normalizedEmail });
+      setVerificationMsg("Doğrulama bağlantısı mail kutuna gönderildi. 15 dakika içinde kullanmalısın.");
+    } catch (e) {
+      const msg = e?.response?.data || "Gönderim başarısız.";
+      setVerificationErr(typeof msg === "string" ? msg : "Gönderim başarısız.");
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  const prefillFirstTimeEmail = () => {
+    if (!firstTimeEmail && email) {
+      setFirstTimeEmail(email);
+    }
+  };
 
   return (
     <Box
@@ -226,6 +258,50 @@ export default function Login() {
           >
             {loading ? "Giriş yapılıyor..." : "Giriş Yap 🚀"}
           </Button>
+
+          <Divider flexItem>İlk kez mi kullanıyorsun?</Divider>
+
+          <Stack spacing={2}
+            sx={{
+              p: 2.5,
+              border: "1px dashed rgba(106, 76, 255, 0.4)",
+              borderRadius: 3,
+              background: "rgba(106, 76, 255, 0.03)",
+            }}
+          >
+            {verificationErr && (
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                {verificationErr}
+              </Alert>
+            )}
+            {verificationMsg && (
+              <Alert severity="success" sx={{ borderRadius: 2 }}>
+                {verificationMsg}
+              </Alert>
+            )}
+            <Typography variant="subtitle1" fontWeight={600}>
+              İlk defa giriş yapacaksan mailine doğrulama linki gönderelim.
+            </Typography>
+            <TextField
+              fullWidth
+              label="Okul E-Posta"
+              placeholder="111111111111@dogus.edu.tr"
+              value={firstTimeEmail}
+              onChange={(e) => setFirstTimeEmail(e.target.value)}
+              onFocus={prefillFirstTimeEmail}
+            />
+            <Button
+              variant="outlined"
+              onClick={requestVerification}
+              disabled={verificationLoading}
+              sx={{ fontWeight: 600, borderRadius: 2 }}
+            >
+              {verificationLoading ? "Gönderiliyor..." : "Doğrulama Linki Gönder"}
+            </Button>
+            <Typography variant="body2" color="text.secondary">
+              Mailine gelen bağlantıya tıklayıp yeni şifreni 2 kez yazarak oluşturduktan sonra buradan giriş yapabilirsin.
+            </Typography>
+          </Stack>
         </Stack>
       </Paper>
     </Box>

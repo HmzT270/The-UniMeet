@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import Login from "./pages/Login.jsx";
+import Verify from "./pages/Verify.jsx";
 import Home from "./pages/Home.jsx";
 import Events from "./pages/Events.jsx";
 import ManageEvents from "./pages/ManageEvents.jsx";
@@ -12,6 +13,7 @@ import AppLayout from "./components/AppLayout.jsx";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login /> },
+  { path: "/verify", element: <Verify /> },
   {
     element: <AppLayout />,
     children: [
