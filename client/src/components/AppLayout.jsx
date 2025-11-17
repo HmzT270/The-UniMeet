@@ -1,8 +1,9 @@
 // src/components/AppLayout.jsx 
-import { Box, AppBar, Toolbar, Typography, Button, Stack } from "@mui/material";
+import { Box, AppBar, Toolbar, Typography, Button, Stack, Fab } from "@mui/material";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useMemo } from "react";
 import NotificationBell from "./NotificationBell";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -43,6 +44,11 @@ export default function AppLayout() {
     "&:active": {
       transform: "translateY(0)",
     },
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user"); // sadece user bilgisini temizle
+    navigate("/");                  // Login route'u: "/"
   };
 
   return (
@@ -184,6 +190,20 @@ export default function AppLayout() {
       <Box sx={{ p: 3, maxWidth: 1400, mx: "auto" }}>
         <Outlet />
       </Box>
+
+      {/* Sağ altta çıkış butonu */}
+      <Fab
+        color="error"
+        onClick={handleLogout}
+        sx={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+          zIndex: 9999,
+        }}
+      >
+        <LogoutIcon />
+      </Fab>
     </Box>
   );
 }

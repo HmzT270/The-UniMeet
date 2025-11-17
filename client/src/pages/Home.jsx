@@ -10,13 +10,22 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api/index";
 
 export default function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Bildirimden gelindiyse: state.openEventId
+  const openEventIdFromState = location.state?.openEventId;
 
   // Kullanıcı bilgisi (ileride gerekirse role bazlı içerik göstermek için)
   const user = useMemo(() => {
@@ -35,7 +44,7 @@ export default function Home() {
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsErr, setEventsErr] = useState("");
 
-  // ---- Yardımcılar ----
+  // ---- Tarih/saat yardımcıları ----
   const parseAsUtc = (s) => {
     if (!s) return null;
     const hasTz = /[zZ]|[+\-]\d{2}:\d{2}$/.test(s);
@@ -122,6 +131,34 @@ export default function Home() {
       return da - db;
     });
   }, [events]);
+
+  // === Pop-up (sadece görüntüleme) için state ===
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [initialEventOpened, setInitialEventOpened] = useState(false);
+
+  const handleCardClick = (e) => {
+    setSelectedEvent(e);   // feed’den gelen objeyi aynen koyuyoruz
+    setDetailOpen(true);
+  };
+
+  const closeDetail = () => {
+    setDetailOpen(false);
+    setSelectedEvent(null);
+  };
+
+  // Bildirimden /home'a gelindiyse, ilgili etkinliğin pop-up'ını otomatik aç
+  useEffect(() => {
+    if (initialEventOpened) return;
+    if (!openEventIdFromState) return;
+    if (!myFeed || myFeed.length === 0) return;
+
+    const target = myFeed.find(ev => String(ev.eventId) === String(openEventIdFromState));
+    if (target) {
+      handleCardClick(target);
+      setInitialEventOpened(true);
+    }
+  }, [openEventIdFromState, myFeed, initialEventOpened]);
 
   return (
     <>
@@ -246,7 +283,9 @@ export default function Home() {
               {myFeed.map((e) => (
                 <Card 
                   key={e.eventId}
+                  onClick={() => handleCardClick(e)}
                   sx={{
+                    cursor: "pointer",
                     transition: "all 0.2s ease-in-out",
                     "&:hover": {
                       transform: "translateY(-4px) scale(1.01)",
@@ -289,6 +328,46 @@ export default function Home() {
           )}
         </Box>
       </Container>
+
+      {/* Sadece görüntüleme amaçlı pop-up */}
+      <Dialog open={detailOpen} onClose={closeDetail} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {selectedEvent?.title ?? "Etkinlik Detayı"}
+          {selectedEvent?.isCancelled && (
+            <Chip label="İptal Edildi" color="error" size="small" />
+          )}
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedEvent ? (
+            <Stack spacing={1.5}>
+              {selectedEvent.clubName && (
+                <Chip label={selectedEvent.clubName} color="primary" variant="outlined" />
+              )}
+              <Divider />
+              <Typography><strong>Yer:</strong> {selectedEvent.location}</Typography>
+              <Typography><strong>Başlangıç:</strong> {fmt(selectedEvent.startAt)}</Typography>
+              <Typography>
+                <strong>Bitiş:</strong> {selectedEvent.endAt ? fmt(selectedEvent.endAt) : "-"}
+              </Typography>
+              <Typography><strong>Kontenjan:</strong> {selectedEvent.quota}</Typography>
+              {selectedEvent.description && (
+                <>
+                  <Divider />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Açıklama</Typography>
+                  <Typography color="text.secondary" sx={{ whiteSpace: "pre-wrap" }}>
+                    {selectedEvent.description}
+                  </Typography>
+                </>
+              )}
+            </Stack>
+          ) : (
+            <Typography color="text.secondary">Etkinlik bilgisi bulunamadı.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDetail}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

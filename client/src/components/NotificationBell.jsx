@@ -7,6 +7,7 @@ import {
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import { api } from "../api/index";
+import { useNavigate } from "react-router-dom";
 
 const SEEN_KEY = "um_seen_event_ids_v1";          // "yeni" tekilleştirme
 const READ_KEY = "um_read_event_ids_v1";          // okundu takibi (rozet)
@@ -49,6 +50,7 @@ export default function NotificationBell() {
   const [items, setItems] = useState([]);          // {id,title,clubName,startAt,when,ts}
   const [unreadCount, setUnreadCount] = useState(0);
   const open = Boolean(anchorEl);
+  const navigate = useNavigate();
 
   const formatWhen = (iso) => {
     const d = parseUTC(iso);
@@ -126,12 +128,11 @@ export default function NotificationBell() {
     return () => clearInterval(id);
   }, []);
 
-  // Menü açılışında artık unread’i sıfırlamıyoruz
   const handleOpen = (e) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  // Tek bildirimi okundu say + listeden çıkar + kalıcı kaydet + rozet azalt + yönlendir
-  const markOneReadAndGo = (id, href) => {
+  // Tek bildirimi okundu say + listeden çıkar + kalıcı kaydet + rozet azalt + ANA SAYFAYA İLGİLİ ETKİNLİKLE GİT
+  const markOneReadAndGo = (id) => {
     const strId = String(id);
 
     // 1) okundu seti
@@ -149,8 +150,9 @@ export default function NotificationBell() {
     // 3) rozet güncelle
     recalcUnread(updated);
 
-    // 4) küçük bir gecikmeyle yönlendir (UI güncellemeyi görsün)
-    setTimeout(() => { window.location.href = href; }, 50);
+    // 4) menüyü kapat + Home’a yönlendir (ilgili etkinlik pop-up’ı açılsın)
+    setAnchorEl(null);
+    navigate("/home", { state: { openEventId: strId } });
   };
 
   // (opsiyonel) tümünü okundu say
@@ -158,7 +160,6 @@ export default function NotificationBell() {
     const readSet = loadSet(READ_KEY);
     items.forEach(i => readSet.add(String(i.id)));
     saveSet(READ_KEY, readSet);
-    // hepsini listeden kaldırmak istemiyorsan sadece rozet güncelle:
     recalcUnread(items);
   };
 
@@ -204,7 +205,7 @@ export default function NotificationBell() {
                 {items.map((e) => (
                   <MenuItem
                     key={e.id}
-                    onClick={() => markOneReadAndGo(e.id, "/events")}
+                    onClick={() => markOneReadAndGo(e.id)}
                   >
                     <ListItemText
                       primary={`"${e.title}" — ${e.clubName}`}
