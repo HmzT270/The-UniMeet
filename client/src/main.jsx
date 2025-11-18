@@ -10,10 +10,16 @@ import Events from "./pages/Events.jsx";
 import ManageEvents from "./pages/ManageEvents.jsx";
 import Clubs from "./pages/Clubs.jsx";
 import AppLayout from "./components/AppLayout.jsx";
+import ResetPasswordRequest from "./pages/ResetPasswordRequest.jsx";
+import ResetPasswordConfirm from "./pages/ResetPasswordConfirm.jsx";
+import FirstTimeVerification from "./pages/FirstTimeVerification.jsx";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login /> },
   { path: "/verify", element: <Verify /> },
+  { path: "/reset-password-request", element: <ResetPasswordRequest /> },
+  { path: "/reset-password-confirm", element: <ResetPasswordConfirm /> },
+  { path: "/first-time-verification", element: <FirstTimeVerification /> },
   {
     element: <AppLayout />,
     children: [

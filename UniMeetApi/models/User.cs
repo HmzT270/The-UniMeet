@@ -41,5 +41,10 @@ namespace UniMeetApi
         public bool RequiresPasswordReset { get; set; } = false;
 
         public DateTime? PasswordSetAt { get; set; }
+
+        // Şifre sıfırlama alanları
+        public string? ResetCode { get; set; }
+
+        public DateTime? ResetCodeExpiresAt { get; set; }
     }
 }

@@ -48,6 +48,10 @@ namespace UniMeetApi.Controllers
 
         public record SetPasswordReq(string Token, string Password, string ConfirmPassword);
 
+        public record RequestPasswordResetReq(string Email);
+
+        public record VerifyResetCodeReq(string Email, string Code, string NewPassword);
+
         // Basit SHA256 hash (demo). Üretimde ASP.NET Identity / BCrypt önerilir.
         private static string Sha256(string input)
         {
@@ -325,6 +329,104 @@ namespace UniMeetApi.Controllers
                 + $"<a href='{verificationLink}' style='display:inline-block;padding:12px 24px;background:#6a4cff;color:#fff;text-decoration:none;border-radius:6px;font-weight:600'>Şifre Oluştur</a>"
                 + "</p>");
             sb.AppendLine("<p>Bağlantı tek kullanımlık olup " + expiresText + " (" + timeZoneDisplayName + ") tarihine kadar geçerlidir. Süresi dolarsa giriş ekranından yeni bir doğrulama isteyebilirsin.</p>");
+            sb.AppendLine("<p>Eğer bu talebi sen oluşturmadıysan bu e-postayı yok sayabilirsin.</p>");
+            sb.AppendLine("<p>UniMeet Ekibi</p>");
+            return sb.ToString();
+        }
+
+        // ========== ŞİFRE SIFIRLAMA ENDPOINT'LERİ ==========
+
+        [HttpPost("request-password-reset")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RequestPasswordReset([FromBody] RequestPasswordResetReq req)
+        {
+            if (req is null) return BadRequest(new { message = "Geçersiz istek." });
+
+            var emailCheck = TryNormalizeStudentEmail(req.Email);
+            if (!emailCheck.IsValid) return BadRequest(new { message = emailCheck.ErrorMessage });
+
+            var email = emailCheck.NormalizedEmail;
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            // Güvenlik için: kullanıcı bulunsun ya da bulunmasın aynı mesajı göster (user enumeration saldırısı önleme)
+            if (user is null || !user.IsActive || !user.EmailConfirmed)
+            {
+                return Ok(new { message = "Eğer e-posta kayıtlıysa ve doğrulı ise, sıfırlama kodu gönderildi." });
+            }
+
+            // 6 haneli kod oluştur
+            var code = new Random().Next(100000, 999999).ToString();
+            user.ResetCode = code;
+            user.ResetCodeExpiresAt = DateTime.UtcNow.AddMinutes(10); // 10 dakika geçerli
+
+            await _db.SaveChangesAsync();
+
+            // E-posta gönder
+            var htmlBody = BuildResetCodeEmailBody(user.FullName, code);
+            try
+            {
+                await _emailSender.SendEmailAsync(email, "UniMeet | Şifre Sıfırlama Kodu", htmlBody);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Şifre sıfırlama e-postası gönderilemedi: {Email}", email);
+                var devMessage = $"E-posta gönderilemedi. Hata: {ex.Message}";
+                var safeMessage = "E-posta gönderilemedi. Bir süre sonra tekrar deneyin.";
+                return StatusCode(500, new { message = _env.IsDevelopment() ? devMessage : safeMessage });
+            }
+
+            return Ok(new { message = "Eğer e-posta kayıtlıysa ve doğrulı ise, sıfırlama kodu gönderildi." });
+        }
+
+        [HttpPost("verify-reset-code")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetCodeReq req)
+        {
+            if (req is null) return BadRequest(new { message = "Geçersiz istek." });
+
+            var emailCheck = TryNormalizeStudentEmail(req.Email);
+            if (!emailCheck.IsValid) return BadRequest(new { message = emailCheck.ErrorMessage });
+
+            var email = emailCheck.NormalizedEmail;
+            var code = (req.Code ?? string.Empty).Trim();
+            var newPassword = (req.NewPassword ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(code))
+                return BadRequest(new { message = "Kod zorunludur." });
+
+            if (newPassword.Length < 8)
+                return BadRequest(new { message = "Şifre en az 8 karakter olmalıdır." });
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user is null)
+                return BadRequest(new { message = "Kullanıcı bulunamadı." });
+
+            if (user.ResetCode != code)
+                return BadRequest(new { message = "Kod yanlış." });
+
+            if (!user.ResetCodeExpiresAt.HasValue || user.ResetCodeExpiresAt.Value < DateTime.UtcNow)
+                return BadRequest(new { message = "Kod süresi dolmuş. Yeni bir sıfırlama talebinde bulunun." });
+
+            // Şifreyi güncelle
+            user.PasswordHash = Sha256(newPassword);
+            user.ResetCode = null;
+            user.ResetCodeExpiresAt = null;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Şifre başarıyla değiştirildi. Artık giriş yapabilirsiniz." });
+        }
+
+        // Şifre sıfırlama e-posta gövdesi
+        private static string BuildResetCodeEmailBody(string fullName, string code)
+        {
+            var safeName = string.IsNullOrWhiteSpace(fullName) ? "Öğrenci" : fullName;
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"<p>Merhaba {safeName},</p>");
+            sb.AppendLine("<p>Şifre sıfırlama talebinde bulundun. Aşağıdaki kodu kullanarak yeni şifreni belirleyebilirsin.</p>");
+            sb.AppendLine($"<p style='text-align:center;margin:32px 0;font-size:32px;font-weight:bold;letter-spacing:8px;color:#6a4cff'>{code}</p>");
+            sb.AppendLine("<p>Bu kod <strong>10 dakika</strong> geçerlidir.</p>");
             sb.AppendLine("<p>Eğer bu talebi sen oluşturmadıysan bu e-postayı yok sayabilirsin.</p>");
             sb.AppendLine("<p>UniMeet Ekibi</p>");
             return sb.ToString();

@@ -1,68 +1,50 @@
-// src/pages/Login.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/index";
 import { Button, TextField, Stack, Typography, Paper, Alert, Box } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 // 12 haneli öğrenci numarası + @dogus.edu.tr
 const emailRegex = /^\d{12}@dogus\.edu\.tr$/;
 
-export default function Login() {
+export default function ResetPasswordRequest() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("info"); // "info" | "error" | "success"
   const navigate = useNavigate();
 
   const isValidEmail = (e) => emailRegex.test(String(e || "").trim().toLowerCase());
 
-  const submit = async () => {
-    setErr("");
+  const submit = async (e) => {
+    e.preventDefault();
+    setMsg("");
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!isValidEmail(normalizedEmail)) {
-      setErr("E-posta şu formatta olmalı: 111111111111@dogus.edu.tr (12 haneli öğrenci numarası)");
-      return;
-    }
-    if (!password.trim()) {
-      setErr("Şifre zorunludur.");
+      setMsg("E-posta şu formatta olmalı: 111111111111@dogus.edu.tr (12 haneli öğrenci numarası)");
+      setMsgType("error");
       return;
     }
 
     try {
       setLoading(true);
-
-      // baseURL yalnızca host+port; endpoint mutlaka /api ile başlasın
-      const { data } = await api.post("/api/Auth/login", {
+      await api.post("/api/Auth/request-password-reset", {
         email: normalizedEmail,
-        password: password.trim(),
       });
 
-      // Beklenen alanlar: userId, email, fullName, role, managedClubId, token
-      if (!data?.token) {
-        setErr("Giriş başarılı görünüyor ama token gelmedi.");
-        return;
-      }
+      setMsgType("success");
+      setMsg("Şifre sıfırlama kodu e-posta adresine gönderildi. Lütfen e-postanızı kontrol edin ve 10 dakika içinde kodu kullanın.");
+      setEmail("");
 
-      // Token'ı sakla (auth header için)
-      localStorage.setItem("token", data.token);
-
-      // Kullanıcı bilgisini sakla — managedClubId dahil
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          userId: data.userId,
-          email: data.email,
-          fullName: data.fullName,
-          role: data.role,
-          managedClubId: data.managedClubId ?? null,
-        })
-      );
-
-      navigate("/home");
+      // 2 saniye sonra doğrulama sayfasına yönlendir
+      setTimeout(() => {
+        navigate("/reset-password-confirm");
+      }, 2000);
     } catch (e) {
-      const msg = e?.response?.data || "Giriş başarısız.";
-      setErr(typeof msg === "string" ? msg : "Giriş başarısız.");
+      const errMsg = e?.response?.data?.message || e?.response?.data || "İstek gönderilemedi. Tekrar deneyin.";
+      setMsg(typeof errMsg === "string" ? errMsg : "İstek gönderilemedi.");
+      setMsgType("error");
     } finally {
       setLoading(false);
     }
@@ -117,7 +99,17 @@ export default function Login() {
           boxShadow: "0 20px 60px rgba(106, 76, 255, 0.1), 0 0 0 1px rgba(106, 19, 80, 0.58)",
         }}
       >
-        <Box sx={{ textAlign: "center", mb: { xs: 3, sm: 4 } }}>
+        <Box sx={{ mb: 3 }}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate("/")}
+            sx={{ color: "#6a4cff", textTransform: "none", fontWeight: 600 }}
+          >
+            Geri Dön
+          </Button>
+        </Box>
+
+        <Box sx={{ textAlign: "center", mb: 4 }}>
           <Box
             sx={{
               width: { xs: 60, sm: 70 },
@@ -133,27 +125,26 @@ export default function Login() {
               boxShadow: "0 8px 24px rgba(106, 76, 255, 0.25)",
             }}
           >
-            🎓
+            🔐
           </Box>
-          <Typography variant="h4" className="unimeet-logo" sx={{ mb: 1.5, fontSize: { xs: "1.75rem", sm: "2rem" } }}>
-            <span className="uni">Uni</span>
-            <span className="meet">Meet</span>
+          <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, fontSize: { xs: "1.5rem", sm: "1.75rem" } }}>
+            Şifreni Sıfırla
           </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: "0.875rem", sm: "1rem" } }}>
-            Hesabına giriş yap ve etkinlikleri keşfet ✨
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}>
+            E-posta adresini gir, sana sıfırlama kodu göndereceğiz
           </Typography>
         </Box>
 
-        <Stack spacing={3}>
-          {err && (
-            <Alert 
-              severity="error" 
-              sx={{ 
+        <Stack spacing={3} component="form" onSubmit={submit}>
+          {msg && (
+            <Alert
+              severity={msgType === "error" ? "error" : msgType === "success" ? "success" : "info"}
+              sx={{
                 borderRadius: 2,
-                border: "1px solid rgba(211, 47, 47, 0.3)",
+                border: msgType === "error" ? "1px solid rgba(211, 47, 47, 0.3)" : "1px solid rgba(25, 118, 210, 0.3)",
               }}
             >
-              {err}
+              {msg}
             </Alert>
           )}
 
@@ -169,28 +160,8 @@ export default function Login() {
                 ? "E-posta formatı: 12 haneli öğrenci no + @dogus.edu.tr"
                 : ""
             }
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  boxShadow: "0 4px 12px rgba(106, 76, 255, 0.08)",
-                },
-                "&.Mui-focused": {
-                  boxShadow: "0 4px 16px rgba(106, 76, 255, 0.15)",
-                },
-              },
-            }}
-          />
-
-          <TextField
-            fullWidth
-            label="Şifre"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
+            onKeyDown={(e) => e.key === "Enter" && submit(e)}
+            disabled={loading}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
@@ -209,7 +180,7 @@ export default function Login() {
             fullWidth
             variant="contained"
             size="large"
-            onClick={submit}
+            type="submit"
             disabled={loading}
             sx={{
               py: 1.8,
@@ -224,42 +195,12 @@ export default function Login() {
               },
             }}
           >
-            {loading ? "Giriş yapılıyor..." : "Giriş Yap 🚀"}
+            {loading ? "Gönderiliyor..." : "Kodu Gönder"}
           </Button>
 
-          <Box sx={{ textAlign: "center" }}>
-            <Typography variant="body2" color="text.secondary">
-              Şifreni mi unuttun?{" "}
-              <a 
-                href="/reset-password-request" 
-                style={{ 
-                  color: "#6a4cff", 
-                  textDecoration: "none", 
-                  fontWeight: 600,
-                  cursor: "pointer"
-                }}
-              >
-                Sıfırla
-              </a>
-            </Typography>
-          </Box>
-
-          <Box sx={{ textAlign: "center" }}>
-            <Typography variant="body2" color="text.secondary">
-              İlk kez mi kullanıyorsun?{" "}
-              <a 
-                href="/first-time-verification" 
-                style={{ 
-                  color: "#6a4cff", 
-                  textDecoration: "none", 
-                  fontWeight: 600,
-                  cursor: "pointer"
-                }}
-              >
-                Kayıt Ol
-              </a>
-            </Typography>
-          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 2 }}>
+            Ardından kodu gir ve yeni şifreni belirle
+          </Typography>
         </Stack>
       </Paper>
     </Box>
