@@ -19,6 +19,17 @@ namespace UniMeetApi.Controllers
         // DTO: takip bilgisini de içerir (with-following için)
         public record ClubWithFollowDto(int ClubId, string Name, bool IsFollowing);
 
+        // DTO: kulüp profili (detaylı bilgi)
+        public record ClubProfileDto(
+            int ClubId,
+            string Name,
+            string? ProfileImageUrl,
+            DateTime? FoundedDate,
+            string? Purpose,
+            int? ManagerId,
+            string? ManagerName
+        );
+
         // JWT'den kullanıcı Id'yi güvenle al (null olabilir)
         private int? TryGetUserId()
         {
@@ -99,6 +110,33 @@ namespace UniMeetApi.Controllers
         }
 
         /// <summary>
+        /// Kulüp profilini detaylı bilgilerle getir (AUTH GEREKTİRMEZ).
+        /// </summary>
+        [HttpGet("{id:int}/profile")]
+        public async Task<ActionResult<ClubProfileDto>> GetProfile(int id)
+        {
+            var club = await _db.Clubs
+                .AsNoTracking()
+                .Where(c => c.ClubId == id)
+                .Include(c => c.Manager)
+                .Select(c => new ClubProfileDto(
+                    c.ClubId,
+                    c.Name,
+                    c.ProfileImageUrl,
+                    c.FoundedDate,
+                    c.Purpose,
+                    c.ManagerId,
+                    c.Manager != null ? c.Manager.FullName : null
+                ))
+                .FirstOrDefaultAsync();
+
+            if (club is null)
+                return NotFound(new { message = "Kulüp bulunamadı." });
+
+            return Ok(club);
+        }
+
+        /// <summary>
         /// Kulübü takip et (idempotent). Zaten takip ediyorsa 204 döner.
         /// </summary>
         [HttpPost("{id:int}/follow")]
@@ -159,7 +197,11 @@ namespace UniMeetApi.Controllers
             var club = new Club
             {
                 Name = req.Name.Trim(),
-                Description = req.Description?.Trim()
+                Description = req.Description?.Trim(),
+                ProfileImageUrl = req.ProfileImageUrl?.Trim(),
+                FoundedDate = req.FoundedDate,
+                Purpose = req.Purpose?.Trim(),
+                ManagerId = req.ManagerId
             };
 
             _db.Clubs.Add(club);
@@ -189,6 +231,13 @@ namespace UniMeetApi.Controllers
             return NoContent();
         }
 
-        public record CreateClubReq(string Name, string? Description);
+        public record CreateClubReq(
+            string Name,
+            string? Description,
+            string? ProfileImageUrl,
+            DateTime? FoundedDate,
+            string? Purpose,
+            int? ManagerId
+        );
     }
 }

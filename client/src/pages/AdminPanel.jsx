@@ -30,6 +30,7 @@ import {
   Card,
   CardContent,
   Grid,
+  Autocomplete,
 } from "@mui/material";
 
 export default function AdminPanel() {
@@ -44,6 +45,10 @@ export default function AdminPanel() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newClubName, setNewClubName] = useState("");
   const [newClubDescription, setNewClubDescription] = useState("");
+  const [newClubLogoUrl, setNewClubLogoUrl] = useState("");
+  const [newClubFoundedDate, setNewClubFoundedDate] = useState("");
+  const [newClubPurpose, setNewClubPurpose] = useState("");
+  const [newClubManagerId, setNewClubManagerId] = useState("");
   const [addClubDialogOpen, setAddClubDialogOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -164,6 +169,10 @@ export default function AdminPanel() {
       const res = await api.post("/api/Clubs", {
         name: newClubName,
         description: newClubDescription,
+        profileImageUrl: newClubLogoUrl,
+        foundedDate: newClubFoundedDate ? new Date(newClubFoundedDate).toISOString() : null,
+        purpose: newClubPurpose,
+        managerId: newClubManagerId ? parseInt(newClubManagerId) : null,
       });
 
       setSuccess("Kulüp başarıyla eklendi.");
@@ -171,6 +180,10 @@ export default function AdminPanel() {
       setAddClubDialogOpen(false);
       setNewClubName("");
       setNewClubDescription("");
+      setNewClubLogoUrl("");
+      setNewClubFoundedDate("");
+      setNewClubPurpose("");
+      setNewClubManagerId("");
 
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -310,7 +323,7 @@ export default function AdminPanel() {
                         sx={{ mr: 1 }}
                         onClick={() => handleOpenDialog(user)}
                       >
-                        Rol Değiştir
+                        Yetki Değiştir
                       </Button>
                       <Button
                         variant="outlined"
@@ -382,9 +395,9 @@ export default function AdminPanel() {
         </Box>
       )}
 
-      {/* Rol Değiştirme Dialog'u */}
+      {/* Yetki Değiştirme Dialog'u */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Rol Değiştir</DialogTitle>
+        <DialogTitle>Yetki Değiştir</DialogTitle>
         <DialogContent sx={{ pt: 3, pb: 3 }}>
           <FormControl fullWidth sx={{ mt: 2 }}>
             <InputLabel>Yeni Rol</InputLabel>
@@ -444,6 +457,59 @@ export default function AdminPanel() {
               onChange={(e) => setNewClubDescription(e.target.value)}
               multiline
               rows={3}
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Logo URL (İsteğe Bağlı)"
+              value={newClubLogoUrl}
+              onChange={(e) => setNewClubLogoUrl(e.target.value)}
+              placeholder="https://example.com/logo.jpg"
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Kurulış Tarihi (İsteğe Bağlı)"
+              type="date"
+              value={newClubFoundedDate}
+              onChange={(e) => setNewClubFoundedDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mb: 3 }}
+            />
+            <TextField
+              fullWidth
+              label="Amaç (İsteğe Bağlı)"
+              value={newClubPurpose}
+              onChange={(e) => setNewClubPurpose(e.target.value)}
+              multiline
+              rows={3}
+              sx={{ mb: 3 }}
+              placeholder="Kulübün amacını kısaca açıklayın"
+            />
+            <Autocomplete
+              options={users.filter((u) => u.role === "Manager" || u.role === "Admin")}
+              getOptionLabel={(option) => `${option.fullName} (${option.email})`}
+              value={
+                newClubManagerId
+                  ? users.find((u) => u.userId === parseInt(newClubManagerId)) || null
+                  : null
+              }
+              onChange={(event, value) => {
+                setNewClubManagerId(value ? value.userId : "");
+              }}
+              filterOptions={(options, state) => {
+                const inputValue = state.inputValue.toLowerCase();
+                return options.filter(
+                  (option) =>
+                    option.fullName.toLowerCase().includes(inputValue) ||
+                    option.email.toLowerCase().includes(inputValue)
+                );
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Yönetici (İsteğe Bağlı)" />
+              )}
+              sx={{ mb: 3 }}
+              noOptionsText="Yönetici bulunamadı"
             />
           </Box>
         </DialogContent>

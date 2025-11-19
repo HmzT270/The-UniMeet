@@ -8,7 +8,11 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +23,9 @@ export default function Clubs() {
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [selectedClubProfile, setSelectedClubProfile] = useState(null);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // --- ENV'ye göre /api kararını otomatik ver ---
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
@@ -108,6 +115,24 @@ export default function Clubs() {
     }
   };
 
+  const openClubProfile = async (clubId) => {
+    setProfileLoading(true);
+    setProfileDialogOpen(true);
+    try {
+      const { data } = await getSmart(`Clubs/${clubId}/profile`);
+      setSelectedClubProfile(data);
+    } catch (e) {
+      setErr(e?.response?.data || "Kulüp profili yüklenemedi.");
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const closeClubProfile = () => {
+    setProfileDialogOpen(false);
+    setSelectedClubProfile(null);
+  };
+
   useEffect(() => {
     fetchClubs();
   }, []);
@@ -179,11 +204,13 @@ export default function Clubs() {
             {clubs.map((c) => (
               <Grid item key={c?.clubId ?? c?.id ?? c?.name} xs={12} sm={6} md={4}>
                 <Card
+                  onClick={() => openClubProfile(c.clubId)}
                   sx={{
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",
                     transition: "all 0.2s ease-in-out",
+                    cursor: "pointer",
                     "&:hover": {
                       transform: "translateY(-6px) scale(1.02)",
                       boxShadow: "0 16px 40px rgba(106, 76, 255, 0.18)",
@@ -201,7 +228,10 @@ export default function Clubs() {
                           size="small"
                           variant="outlined"
                           color="error"
-                          onClick={() => unfollow(c.clubId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unfollow(c.clubId);
+                          }}
                           sx={{
                             borderRadius: 2,
                             textTransform: "none",
@@ -219,7 +249,10 @@ export default function Clubs() {
                         <Button
                           size="small"
                           variant="contained"
-                          onClick={() => follow(c.clubId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            follow(c.clubId);
+                          }}
                           sx={{
                             borderRadius: 2,
                             textTransform: "none",
@@ -243,6 +276,97 @@ export default function Clubs() {
           </Grid>
         )}
       </Container>
+
+      <Dialog
+        open={profileDialogOpen}
+        onClose={closeClubProfile}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600, fontSize: "1.25rem", pb: 1 }}>
+          {profileLoading ? "Yükleniyor..." : selectedClubProfile?.name ?? "Kulüp Profili"}
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 2 }}>
+          {profileLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress sx={{ color: "#6a4cff" }} />
+            </Box>
+          ) : selectedClubProfile ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {/* Profil Resmi */}
+              {selectedClubProfile.profileImageUrl ? (
+                <Box
+                  component="img"
+                  src={selectedClubProfile.profileImageUrl}
+                  alt={selectedClubProfile.name}
+                  sx={{
+                    width: "100%",
+                    height: 200,
+                    borderRadius: 2,
+                    objectFit: "cover",
+                    backgroundColor: "rgba(106, 76, 255, 0.1)",
+                  }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: "100%",
+                    height: 200,
+                    borderRadius: 2,
+                    backgroundColor: "rgba(106, 76, 255, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#6a4cff",
+                    fontSize: "4rem",
+                  }}
+                >
+                  🎓
+                </Box>
+              )}
+
+              {/* Kurulış Tarihi */}
+              {selectedClubProfile.foundedDate && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: "#999", fontWeight: 600 }}>
+                    Kurulış Tarihi
+                  </Typography>
+                  <Typography variant="body2">
+                    {new Date(selectedClubProfile.foundedDate).toLocaleDateString("tr-TR")}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Yönetici */}
+              {selectedClubProfile.managerName && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: "#999", fontWeight: 600 }}>
+                    Yönetici
+                  </Typography>
+                  <Typography variant="body2">{selectedClubProfile.managerName}</Typography>
+                </Box>
+              )}
+
+              {/* Amaç/Açıklama */}
+              {selectedClubProfile.purpose && (
+                <Box>
+                  <Typography variant="caption" sx={{ color: "#999", fontWeight: 600 }}>
+                    Amaç
+                  </Typography>
+                  <Typography variant="body2">{selectedClubProfile.purpose}</Typography>
+                </Box>
+              )}
+            </Box>
+          ) : null}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={closeClubProfile} sx={{ textTransform: "none", fontWeight: 600 }}>
+            Kapat
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
