@@ -18,15 +18,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 
-// Development'ta demo sender, production'da SMTP sender kullan
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddTransient<IEmailSender, DemoEmailSender>();
-}
-else
-{
-    builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
-}
+// Email gönderimi için SMTP kullan (Development ve Production'da)
+builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
 
 // CORS (React client için)
 builder.Services.AddCors(options =>

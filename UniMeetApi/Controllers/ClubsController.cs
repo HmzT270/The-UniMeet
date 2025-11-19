@@ -145,5 +145,50 @@ namespace UniMeetApi.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Yeni kulüp oluştur (Admin only)
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ClubDto>> CreateClub([FromBody] CreateClubReq req)
+        {
+            if (req is null || string.IsNullOrWhiteSpace(req.Name))
+                return BadRequest(new { message = "Kulüp adı gerekli." });
+
+            var club = new Club
+            {
+                Name = req.Name.Trim(),
+                Description = req.Description?.Trim()
+            };
+
+            _db.Clubs.Add(club);
+            await _db.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetAll), new { id = club.ClubId }, new ClubDto(club.ClubId, club.Name));
+        }
+
+        /// <summary>
+        /// Kulübü sil (Admin only)
+        /// </summary>
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteClub(int id)
+        {
+            var club = await _db.Clubs.FirstOrDefaultAsync(c => c.ClubId == id);
+            if (club is null)
+                return NotFound(new { message = "Kulüp bulunamadı." });
+
+            // Kulüpte member varsa onları da sil
+            var members = await _db.ClubMembers.Where(m => m.ClubId == id).ToListAsync();
+            _db.ClubMembers.RemoveRange(members);
+
+            _db.Clubs.Remove(club);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        public record CreateClubReq(string Name, string? Description);
     }
 }
