@@ -35,6 +35,8 @@ export default function ResetPasswordRequest() {
 
       setMsgType("success");
       setMsg("Şifre sıfırlama kodu e-posta adresine gönderildi. Lütfen e-postanızı kontrol edin ve 10 dakika içinde kodu kullanın.");
+      // E-postayı localStorage'a kaydet
+      localStorage.setItem("resetEmail", normalizedEmail);
       setEmail("");
 
       // 2 saniye sonra doğrulama sayfasına yönlendir

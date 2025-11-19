@@ -180,6 +180,30 @@ export default function AppLayout() {
               </Button>
             )}
 
+            {isAdmin && (
+              <Button
+                variant="contained"
+                onClick={() => navigate("/admin")}
+                sx={{ 
+                  ml: { xs: 0.5, sm: 1 },
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  px: { xs: 1.5, sm: 2 },
+                  fontWeight: 600,
+                  bgcolor: "white",
+                  color: "white",
+                  background: "linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)",
+                  boxShadow: "0 4px 14px rgba(0, 0, 0, 0.2)",
+                  "&:hover": {
+                    background: "linear-gradient(135deg, #f05454 0%, #ee5a52 100%)",
+                    boxShadow: "0 6px 20px rgba(0, 0, 0, 0.25)",
+                    transform: "translateY(-2px)",
+                  },
+                }}
+              >
+                <span style={{ display: { xs: "none", sm: "inline" } }}>⚙️ </span>Admin
+              </Button>
+            )}
+
             <NotificationBell sx={{ color: "white" }} />
           </Stack>
         </Toolbar>

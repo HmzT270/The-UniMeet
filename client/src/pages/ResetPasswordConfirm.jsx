@@ -9,7 +9,6 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 const emailRegex = /^\d{12}@dogus\.edu\.tr$/;
 
 export default function ResetPasswordConfirm() {
-  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,22 +18,12 @@ export default function ResetPasswordConfirm() {
   const [completed, setCompleted] = useState(false);
   const navigate = useNavigate();
 
-  const isValidEmail = (e) => emailRegex.test(String(e || "").trim().toLowerCase());
   const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
   const passwordValid = newPassword.length >= 8;
-  const showFormatError = !!email && !isValidEmail(email);
 
   const submit = async (e) => {
     e.preventDefault();
     setMsg("");
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!isValidEmail(normalizedEmail)) {
-      setMsg("E-posta şu formatta olmalı: 111111111111@dogus.edu.tr");
-      setMsgType("error");
-      return;
-    }
 
     if (!code.trim()) {
       setMsg("Sıfırlama kodunu giriniz.");
@@ -56,12 +45,20 @@ export default function ResetPasswordConfirm() {
 
     try {
       setLoading(true);
+      // localStorage'den e-postayı al (ResetPasswordRequest sayfasından)
+      const email = localStorage.getItem("resetEmail");
+      if (!email) {
+        setMsg("E-posta bilgisi bulunamadı. Baştan başlayın.");
+        setMsgType("error");
+        return;
+      }
       await api.post("/api/Auth/verify-reset-code", {
-        email: normalizedEmail,
+        email: email,
         code: code.trim(),
         newPassword: newPassword,
       });
 
+      localStorage.removeItem("resetEmail");
       setCompleted(true);
       setMsgType("success");
       setMsg("Şifren başarıyla değiştirildi! Giriş sayfasına yönlendiriliyorsun...");
@@ -224,33 +221,6 @@ export default function ResetPasswordConfirm() {
 
           <TextField
             fullWidth
-            label="Okul E-Posta"
-            placeholder="111111111111@dogus.edu.tr"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={showFormatError}
-            helperText={
-              showFormatError
-                ? "E-posta formatı: 12 haneli öğrenci no + @dogus.edu.tr"
-                : ""
-            }
-            disabled={loading}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  boxShadow: "0 4px 12px rgba(106, 76, 255, 0.08)",
-                },
-                "&.Mui-focused": {
-                  boxShadow: "0 4px 16px rgba(106, 76, 255, 0.15)",
-                },
-              },
-            }}
-          />
-
-          <TextField
-            fullWidth
             label="Sıfırlama Kodu"
             placeholder="Gelen kodu giriniz"
             value={code}
@@ -337,7 +307,7 @@ export default function ResetPasswordConfirm() {
             variant="contained"
             size="large"
             type="submit"
-            disabled={loading || !isValidEmail(email) || !code.trim() || !passwordValid || !passwordsMatch}
+            disabled={loading || !code.trim() || !passwordValid || !passwordsMatch}
             sx={{
               py: 1.8,
               fontSize: "1.05rem",

@@ -49,16 +49,18 @@ namespace UniMeetApi.Services
             using var client = new SmtpClient(_settings.Host, _settings.Port)
             {
                 EnableSsl = _settings.EnableSsl,
-                Credentials = new NetworkCredential(_settings.Username, _settings.Password)
+                Credentials = new NetworkCredential(_settings.Username, _settings.Password),
+                Timeout = 10000 // 10 saniye timeout
             };
 
             try
             {
                 await client.SendMailAsync(message, cancellationToken);
+                _logger.LogInformation($"Email başarıyla gönderildi: {toEmail}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "SMTP gönderimi başarısız oldu.");
+                _logger.LogError(ex, $"SMTP gönderimi başarısız oldu. Host: {_settings.Host}, Port: {_settings.Port}, Kullanıcı: {_settings.Username}");
                 throw;
             }
         }

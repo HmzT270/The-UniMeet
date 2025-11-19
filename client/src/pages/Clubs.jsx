@@ -195,57 +195,6 @@ export default function Clubs() {
                       {c?.name ?? "Kulüp"}
                     </Typography>
 
-                    {c?.description && (
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
-                        sx={{ 
-                          mt: 1, 
-                          mb: 2,
-                          whiteSpace: "pre-wrap",
-                          lineHeight: 1.6,
-                          fontSize: { xs: "0.875rem", sm: "0.875rem" },
-                        }}
-                      >
-                        {c.description}
-                      </Typography>
-                    )}
-
-                    <Box sx={{ mt: 1.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      {typeof c?.memberCount === "number" && (
-                        <Chip 
-                          size="small" 
-                          label={`👥 ${c.memberCount} üye`}
-                          sx={{
-                            backgroundColor: "rgba(106, 76, 255, 0.1)",
-                            fontWeight: 600,
-                            fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                            transition: "all 0.2s ease-in-out",
-                            "&:hover": {
-                              backgroundColor: "rgba(106, 76, 255, 0.2)",
-                              transform: "translateY(-1px)",
-                            },
-                          }}
-                        />
-                      )}
-                      {c?.createdAt && (
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          label={`📅 ${new Date(c.createdAt).toLocaleDateString("tr-TR")}`}
-                          sx={{
-                            fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                            transition: "all 0.2s ease-in-out",
-                            "&:hover": {
-                              borderColor: "#6a4cff",
-                              backgroundColor: "rgba(106, 76, 255, 0.05)",
-                              transform: "translateY(-1px)",
-                            },
-                          }}
-                        />
-                      )}
-                    </Box>
-
                     <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
                       {c?.isFollowing ? (
                         <Button

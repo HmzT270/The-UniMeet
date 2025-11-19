@@ -16,7 +16,7 @@ namespace UniMeetApi.Controllers
         // Mevcut minimal DTO (mevcut frontend'i kırmamak için korunuyor)
         public record ClubDto(int ClubId, string Name);
 
-        // Yeni DTO: takip bilgisini de içerir (with-following için)
+        // DTO: takip bilgisini de içerir (with-following için)
         public record ClubWithFollowDto(int ClubId, string Name, bool IsFollowing);
 
         // JWT'den kullanıcı Id'yi güvenle al (null olabilir)

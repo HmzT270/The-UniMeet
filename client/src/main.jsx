@@ -13,6 +13,7 @@ import AppLayout from "./components/AppLayout.jsx";
 import ResetPasswordRequest from "./pages/ResetPasswordRequest.jsx";
 import ResetPasswordConfirm from "./pages/ResetPasswordConfirm.jsx";
 import FirstTimeVerification from "./pages/FirstTimeVerification.jsx";
+import AdminPanel from "./pages/AdminPanel.jsx";
 
 const router = createBrowserRouter([
   { path: "/", element: <Login /> },
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
       { path: "/events", element: <Events /> },
       { path: "/manageevents", element: <ManageEvents /> },
       { path: "/clubs", element: <Clubs /> },
+      { path: "/admin", element: <AdminPanel /> },
     ],
   },
 ]);

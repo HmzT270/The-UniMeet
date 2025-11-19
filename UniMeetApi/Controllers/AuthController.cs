@@ -40,7 +40,7 @@ namespace UniMeetApi.Controllers
         // ✅ ManagedClubId ve Token ekli
         public record LoginRes(int UserId, string Email, string FullName, string Role, int? ManagedClubId, string Token);
 
-        public record RequestVerificationReq(string Email);
+        public record RequestVerificationReq(string Email, string? FullName);
 
         public record RequestVerificationRes(string Email, bool EmailSent, DateTime ExpiresAtUtc, DateTime ExpiresAtLocal, string TimeZoneDisplayName);
 
@@ -152,7 +152,7 @@ namespace UniMeetApi.Controllers
                 user = new User
                 {
                     Email = email,
-                    FullName = email.Split('@')[0],
+                    FullName = req.FullName ?? email.Split('@')[0],
                     PasswordHash = string.Empty,
                     Role = UserRole.Member,
                     IsActive = true,
@@ -169,6 +169,9 @@ namespace UniMeetApi.Controllers
 
                 if (user.EmailConfirmed && !user.RequiresPasswordReset)
                     return BadRequest("Bu e-posta zaten doğrulanmış ve kullanıma hazır. Giriş yapmayı deneyebilirsiniz.");
+
+                if (!string.IsNullOrWhiteSpace(req.FullName))
+                    user.FullName = req.FullName;
 
                 user.RequiresPasswordReset = true;
                 user.EmailConfirmed = false;

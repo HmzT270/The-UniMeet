@@ -9,6 +9,8 @@ const emailRegex = /^\d{12}@dogus\.edu\.tr$/;
 
 export default function FirstTimeVerification() {
   const [firstTimeEmail, setFirstTimeEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [verificationErr, setVerificationErr] = useState("");
   const [verificationMsg, setVerificationMsg] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
@@ -26,11 +28,21 @@ export default function FirstTimeVerification() {
       return;
     }
 
+    if (!firstName.trim() || !lastName.trim()) {
+      setVerificationErr("Ad ve soyadı doldurmak zorunludur.");
+      return;
+    }
+
     try {
       setVerificationLoading(true);
-      await api.post("/api/Auth/request-verification", { email: normalizedEmail });
+      await api.post("/api/Auth/request-verification", { 
+        email: normalizedEmail,
+        fullName: `${firstName.trim()} ${lastName.trim()}`
+      });
       setVerificationMsg("Doğrulama bağlantısı mail kutuna gönderildi. 15 dakika içinde kullanmalısın.");
       setFirstTimeEmail("");
+      setFirstName("");
+      setLastName("");
     } catch (e) {
       const msg = e?.response?.data || "Gönderim başarısız.";
       setVerificationErr(typeof msg === "string" ? msg : "Gönderim başarısız.");
@@ -142,6 +154,48 @@ export default function FirstTimeVerification() {
 
           <TextField
             fullWidth
+            label="Ad"
+            placeholder="Ahmet"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            disabled={verificationLoading}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 4px 12px rgba(106, 76, 255, 0.08)",
+                },
+                "&.Mui-focused": {
+                  boxShadow: "0 4px 16px rgba(106, 76, 255, 0.15)",
+                },
+              },
+            }}
+          />
+
+          <TextField
+            fullWidth
+            label="Soyad"
+            placeholder="Yılmaz"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            disabled={verificationLoading}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 4px 12px rgba(106, 76, 255, 0.08)",
+                },
+                "&.Mui-focused": {
+                  boxShadow: "0 4px 16px rgba(106, 76, 255, 0.15)",
+                },
+              },
+            }}
+          />
+
+          <TextField
+            fullWidth
             label="Okul E-Posta"
             placeholder="111111111111@dogus.edu.tr"
             value={firstTimeEmail}
@@ -170,7 +224,7 @@ export default function FirstTimeVerification() {
           <Button
             variant="outlined"
             onClick={requestVerification}
-            disabled={verificationLoading || !isValidEmail(firstTimeEmail)}
+            disabled={verificationLoading || !isValidEmail(firstTimeEmail) || !firstName.trim() || !lastName.trim()}
             sx={{ fontWeight: 600, borderRadius: 2 }}
           >
             {verificationLoading ? "Gönderiliyor..." : "Doğrulama Linki Gönder"}
