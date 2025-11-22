@@ -217,15 +217,89 @@ export default function Clubs() {
                     },
                   }}
                 >
-                  <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 3 } }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 1.5, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+                  <CardContent 
+                    sx={{ 
+                      flexGrow: 1, 
+                      p: { xs: 2, sm: 3 },
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2
+                    }}
+                  >
+                    {/* Logo Alanı */}
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: { xs: 160, sm: 180 },
+                        borderRadius: 2,
+                        overflow: "hidden",
+                        backgroundColor: "rgba(106, 76, 255, 0.05)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "2px solid rgba(106, 76, 255, 0.1)",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          borderColor: "rgba(106, 76, 255, 0.3)",
+                        },
+                      }}
+                    >
+                      {c?.profileImageUrl ? (
+                        <Box
+                          component="img"
+                          src={c.profileImageUrl}
+                          alt={c?.name ?? "Kulüp"}
+                          sx={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "contain",
+                            padding: 2,
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <Box
+                        sx={{
+                          display: c?.profileImageUrl ? "none" : "flex",
+                          width: "100%",
+                          height: "100%",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: { xs: "3rem", sm: "4rem" },
+                          color: "rgba(106, 76, 255, 0.3)",
+                        }}
+                      >
+                        🎓
+                      </Box>
+                    </Box>
+
+                    {/* Kulüp Adı */}
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 700, 
+                        fontSize: { xs: "1rem", sm: "1.1rem" },
+                        textAlign: "center",
+                        color: "#1a1a1a",
+                        minHeight: { xs: "2.5rem", sm: "3rem" },
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        lineHeight: 1.3,
+                      }}
+                    >
                       {c?.name ?? "Kulüp"}
                     </Typography>
 
-                    <Box sx={{ mt: 2.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    {/* Takip Butonu */}
+                    <Box sx={{ width: "100%" }}>
                       {c?.isFollowing ? (
                         <Button
-                          size="small"
+                          fullWidth
+                          size="medium"
                           variant="outlined"
                           color="error"
                           onClick={(e) => {
@@ -236,10 +310,13 @@ export default function Clubs() {
                             borderRadius: 2,
                             textTransform: "none",
                             fontWeight: 600,
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                            fontSize: { xs: "0.875rem", sm: "0.95rem" },
+                            py: 1.2,
+                            borderWidth: 2,
                             "&:hover": {
+                              borderWidth: 2,
                               transform: "translateY(-2px)",
-                              boxShadow: "0 4px 12px rgba(211, 47, 47, 0.2)",
+                              boxShadow: "0 4px 12px rgba(211, 47, 47, 0.25)",
                             },
                           }}
                         >
@@ -247,7 +324,8 @@ export default function Clubs() {
                         </Button>
                       ) : (
                         <Button
-                          size="small"
+                          fullWidth
+                          size="medium"
                           variant="contained"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -257,11 +335,14 @@ export default function Clubs() {
                             borderRadius: 2,
                             textTransform: "none",
                             fontWeight: 600,
-                            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                            boxShadow: "0 4px 12px rgba(106, 76, 255, 0.2)",
+                            fontSize: { xs: "0.875rem", sm: "0.95rem" },
+                            py: 1.2,
+                            background: "linear-gradient(135deg, #6a4cff 0%, #8c6fff 100%)",
+                            boxShadow: "0 4px 12px rgba(106, 76, 255, 0.25)",
                             "&:hover": {
+                              background: "linear-gradient(135deg, #563bff 0%, #6a4cff 100%)",
                               transform: "translateY(-2px)",
-                              boxShadow: "0 6px 18px rgba(106, 76, 255, 0.3)",
+                              boxShadow: "0 6px 18px rgba(106, 76, 255, 0.35)",
                             },
                           }}
                         >

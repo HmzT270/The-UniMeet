@@ -28,7 +28,7 @@ namespace UniMeetApi.Controllers
         );
 
         // DTO: takip bilgisini de içerir (with-following için)
-        public record ClubWithFollowDto(int ClubId, string Name, bool IsFollowing);
+        public record ClubWithFollowDto(int ClubId, string Name, string? ProfileImageUrl, bool IsFollowing);
 
         // DTO: kulüp profili (detaylı bilgi)
         public record ClubProfileDto(
@@ -110,6 +110,7 @@ namespace UniMeetApi.Controllers
                 .Select(c => new ClubWithFollowDto(
                     c.ClubId,
                     c.Name,
+                    c.ProfileImageUrl,
                     mySet.Contains(c.ClubId)
                 ))
                 .ToListAsync();
