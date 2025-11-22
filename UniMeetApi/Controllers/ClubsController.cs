@@ -16,6 +16,17 @@ namespace UniMeetApi.Controllers
         // Mevcut minimal DTO (mevcut frontend'i kırmamak için korunuyor)
         public record ClubDto(int ClubId, string Name);
 
+        // DTO: Admin için detaylı kulüp bilgisi
+        public record ClubDetailedDto(
+            int ClubId,
+            string Name,
+            string? Description,
+            string? ProfileImageUrl,
+            DateTime? FoundedDate,
+            string? Purpose,
+            int? ManagerId
+        );
+
         // DTO: takip bilgisini de içerir (with-following için)
         public record ClubWithFollowDto(int ClubId, string Name, bool IsFollowing);
 
@@ -47,6 +58,29 @@ namespace UniMeetApi.Controllers
                 .AsNoTracking()
                 .OrderBy(c => c.Name)
                 .Select(c => new ClubDto(c.ClubId, c.Name))
+                .ToListAsync();
+
+            return Ok(list);
+        }
+
+        /// <summary>
+        /// Tüm kulüplerin detaylı listesi - Admin paneli için
+        /// </summary>
+        [HttpGet("detailed")]
+        public async Task<ActionResult<List<ClubDetailedDto>>> GetAllDetailed()
+        {
+            var list = await _db.Clubs
+                .AsNoTracking()
+                .OrderBy(c => c.Name)
+                .Select(c => new ClubDetailedDto(
+                    c.ClubId,
+                    c.Name,
+                    c.Description,
+                    c.ProfileImageUrl,
+                    c.FoundedDate,
+                    c.Purpose,
+                    c.ManagerId
+                ))
                 .ToListAsync();
 
             return Ok(list);

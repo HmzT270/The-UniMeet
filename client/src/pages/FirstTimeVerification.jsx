@@ -129,7 +129,7 @@ export default function FirstTimeVerification() {
             ✉️
           </Box>
           <Typography variant="h4" sx={{ mb: 1, fontWeight: 700, fontSize: { xs: "1.5rem", sm: "1.75rem" } }}>
-            İlk Doğrulama
+            Kayıt Ol
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}>
             E-posta adresini gir, doğrulama linki gönderelim

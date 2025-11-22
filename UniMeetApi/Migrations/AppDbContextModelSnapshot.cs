@@ -57,7 +57,7 @@ namespace UniMeetApi.Migrations
 
                     b.HasIndex("ManagerId");
 
-                    b.ToTable("Clubs");
+                    b.ToTable("Clubs", (string)null);
                 });
 
             modelBuilder.Entity("UniMeetApi.ClubMember", b =>
@@ -77,7 +77,7 @@ namespace UniMeetApi.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ClubMembers");
+                    b.ToTable("ClubMembers", (string)null);
                 });
 
             modelBuilder.Entity("UniMeetApi.Event", b =>
@@ -124,7 +124,7 @@ namespace UniMeetApi.Migrations
 
                     b.HasKey("EventId");
 
-                    b.ToTable("Events");
+                    b.ToTable("Events", (string)null);
                 });
 
             modelBuilder.Entity("UniMeetApi.User", b =>
@@ -179,7 +179,7 @@ namespace UniMeetApi.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("UniMeetApi.Club", b =>

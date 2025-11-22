@@ -72,7 +72,7 @@ export default function AdminPanel() {
         // Kullanıcıları ve kulüpleri getir
         const [usersRes, clubsRes] = await Promise.all([
           api.get("/api/Admin/users"),
-          api.get("/api/Clubs"),
+          api.get("/api/Clubs/detailed"),
         ]);
         setUsers(usersRes.data || []);
         setClubs(clubsRes.data || []);
@@ -155,6 +155,19 @@ export default function AdminPanel() {
         return "warning";
       default:
         return "default";
+    }
+  };
+
+  const getRoleName = (role) => {
+    switch (role) {
+      case "Admin":
+        return "Yönetici";
+      case "Manager":
+        return "Kulüp Yöneticisi";
+      case "Member":
+        return "Üye";
+      default:
+        return role;
     }
   };
 
@@ -282,7 +295,7 @@ export default function AdminPanel() {
               <TableRow>
                 <TableCell sx={{ color: "white", fontWeight: 700 }}>E-posta</TableCell>
                 <TableCell sx={{ color: "white", fontWeight: 700 }}>Ad Soyad</TableCell>
-                <TableCell sx={{ color: "white", fontWeight: 700 }}>Rol</TableCell>
+                <TableCell sx={{ color: "white", fontWeight: 700 }}>Yetki</TableCell>
                 <TableCell sx={{ color: "white", fontWeight: 700 }}>Durum</TableCell>
                 <TableCell sx={{ color: "white", fontWeight: 700 }} align="center">
                   İşlemler
@@ -303,7 +316,7 @@ export default function AdminPanel() {
                     <TableCell>{user.fullName}</TableCell>
                     <TableCell>
                       <Chip
-                        label={user.role}
+                        label={getRoleName(user.role)}
                         color={getRoleColor(user.role)}
                         variant="outlined"
                         size="small"
@@ -355,43 +368,59 @@ export default function AdminPanel() {
             </Button>
           </Box>
 
-          {clubs.length === 0 ? (
-            <Card>
-              <CardContent sx={{ textAlign: "center", py: 4 }}>
-                <Typography color="text.secondary">Henüz kulüp oluşturulmamış.</Typography>
-              </CardContent>
-            </Card>
-          ) : (
-            <Grid container spacing={2}>
-              {clubs.map((club) => (
-                <Grid item xs={12} sm={6} md={4} key={club.clubId}>
-                  <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                        {club.name}
-                      </Typography>
-                      {club.description && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          {club.description}
-                        </Typography>
-                      )}
-                    </CardContent>
-                    <Box sx={{ p: 2, pt: 0 }}>
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        color="error"
-                        size="small"
-                        onClick={() => handleDeleteClub(club.clubId)}
-                      >
-                        🗑️ Sil
-                      </Button>
-                    </Box>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          )}
+          <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2 }}>
+            <Table>
+              <TableHead sx={{ backgroundColor: "#6a4cff" }}>
+                <TableRow>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>Kulüp Adı</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>Açıklama</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>Kuruluş Tarihi</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>Yönetici</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }} align="center">
+                    İşlemler
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {clubs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                      Henüz kulüp oluşturulmamış.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  clubs.map((club) => (
+                    <TableRow key={club.clubId} sx={{ "&:hover": { backgroundColor: "#f5f5f5" } }}>
+                      <TableCell sx={{ fontWeight: 600 }}>{club.name}</TableCell>
+                      <TableCell>
+                        {club.description || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {club.foundedDate 
+                          ? new Date(club.foundedDate).toLocaleDateString("tr-TR")
+                          : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {club.managerId 
+                          ? users.find(u => u.userId === club.managerId)?.fullName || "Bilinmiyor"
+                          : "-"}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          onClick={() => handleDeleteClub(club.clubId)}
+                        >
+                          Kulüp Sil
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
       )}
 
@@ -406,9 +435,9 @@ export default function AdminPanel() {
               label="Yeni Rol"
               onChange={(e) => setNewRole(e.target.value)}
             >
-              <MenuItem value="Member">Member</MenuItem>
-              <MenuItem value="Manager">Manager</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
+              <MenuItem value="Member">Üye</MenuItem>
+              <MenuItem value="Manager">Kulüp Yöneticisi</MenuItem>
+              <MenuItem value="Admin">Yönetici</MenuItem>
             </Select>
           </FormControl>
           {selectedUser && (
@@ -417,10 +446,10 @@ export default function AdminPanel() {
                 <strong>Kullanıcı:</strong> {selectedUser.fullName} ({selectedUser.email})
               </p>
               <p>
-                <strong>Mevcut Rol:</strong> {selectedUser.role}
+                <strong>Mevcut Rol:</strong> {getRoleName(selectedUser.role)}
               </p>
               <p>
-                <strong>Yeni Rol:</strong> {newRole}
+                <strong>Yeni Rol:</strong> {getRoleName(newRole)}
               </p>
             </Box>
           )}
