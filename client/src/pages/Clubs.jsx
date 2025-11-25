@@ -12,9 +12,12 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  TextField,
+  InputAdornment
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import SearchIcon from "@mui/icons-material/Search";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/index"; // import yolu sabitlendi
 
@@ -26,6 +29,7 @@ export default function Clubs() {
   const [selectedClubProfile, setSelectedClubProfile] = useState(null);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // --- ENV'ye göre /api kararını otomatik ver ---
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
@@ -133,6 +137,15 @@ export default function Clubs() {
     setSelectedClubProfile(null);
   };
 
+  // Arama filtresi
+  const filteredClubs = useMemo(() => {
+    if (!searchQuery.trim()) return clubs;
+    const query = searchQuery.toLowerCase();
+    return clubs.filter(c => 
+      c?.name?.toLowerCase().includes(query)
+    );
+  }, [clubs, searchQuery]);
+
   useEffect(() => {
     fetchClubs();
   }, []);
@@ -145,7 +158,7 @@ export default function Clubs() {
             Kayıtlı Kulüpler
           </Typography>
           <Chip 
-            label={`${clubs.length} kulüp`} 
+            label={`${filteredClubs.length} kulüp`} 
             color="primary" 
             variant="filled"
             sx={{ fontWeight: 600, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
@@ -163,6 +176,35 @@ export default function Clubs() {
           >
             🔄 Yenile
           </Button>
+        </Box>
+
+        {/* Arama Kutusu */}
+        <Box sx={{ mb: 3 }}>
+          <TextField
+            fullWidth
+            placeholder="Kulüp ara..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: "#6a4cff" }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              maxWidth: { xs: "100%", sm: 400 },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 3,
+                "&:hover": {
+                  boxShadow: "0 4px 12px rgba(106, 76, 255, 0.1)",
+                },
+                "&.Mui-focused": {
+                  boxShadow: "0 4px 16px rgba(106, 76, 255, 0.2)",
+                },
+              },
+            }}
+          />
         </Box>
 
         {err && (
@@ -199,14 +241,24 @@ export default function Clubs() {
           >
             Henüz kayıtlı kulüp bulunmuyor.
           </Alert>
+        ) : filteredClubs.length === 0 ? (
+          <Alert 
+            severity="info" 
+            sx={{ 
+              borderRadius: 2,
+              border: "1px solid rgba(2, 136, 209, 0.3)",
+            }}
+          >
+            Arama kriterlerine uygun kulüp bulunamadı.
+          </Alert>
         ) : (
           <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-            {clubs.map((c) => (
+            {filteredClubs.map((c) => (
               <Grid item key={c?.clubId ?? c?.id ?? c?.name} xs={12} sm={6} md={4}>
                 <Card
                   onClick={() => openClubProfile(c.clubId)}
                   sx={{
-                    height: "100%",
+                    height: 420,
                     display: "flex",
                     flexDirection: "column",
                     transition: "all 0.2s ease-in-out",
